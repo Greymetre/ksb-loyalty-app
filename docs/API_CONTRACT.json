@@ -1,0 +1,95 @@
+{
+  "baseUrl": "https://ksb-net-backend-production.up.railway.app/api",
+  "auth": {
+    "sendOtp": {
+      "method": "POST",
+      "path": "/auth/send-otp",
+      "body": {
+        "mobile": "9876543210",
+        "country_code": "+91",
+        "app_type": "retailer",
+        "device_type": "android",
+        "device_name": "Postman Android",
+        "unique_id": "postman-device-001",
+        "app_version": "1.0.0"
+      }
+    },
+    "verifyOtp": {
+      "method": "POST",
+      "path": "/auth/verify-otp",
+      "body": {
+        "mobile": "9876543210",
+        "country_code": "+91",
+        "otp": "1234",
+        "request_id": "",
+        "device_type": "android",
+        "device_name": "Postman Android",
+        "unique_id": "postman-device-001",
+        "app_version": "1.0.0"
+      }
+    }
+  },
+  "masters": {
+    "customerTypes": { "method": "GET", "path": "/masters/customer-types" },
+    "states": { "method": "GET", "path": "/masters/states?search=" },
+    "dealers": { "method": "GET", "path": "/dealers?search=" }
+  },
+  "registration": {
+    "registerRetailer": { "method": "POST", "path": "/retailer/register" },
+    "uploadKyc": {
+      "method": "POST",
+      "path": "/retailer/kyc",
+      "contentType": "multipart/form-data"
+    }
+  },
+  "dashboard": { "method": "GET", "path": "/retailer/dashboard" },
+  "profile": {
+    "get": { "method": "GET", "path": "/profile" },
+    "update": { "method": "PUT", "path": "/profile" }
+  },
+  "wallets": {
+    "slab": { "method": "GET", "path": "/wallets/slab" },
+    "booster": { "method": "GET", "path": "/wallets/booster" }
+  },
+  "invoices": {
+    "list": {
+      "method": "GET",
+      "path": "/invoices?search=&dealer_id=&status=&from_date=&to_date=&page=1&page_size=20"
+    }
+  },
+  "redemptions": {
+    "preview": {
+      "method": "POST",
+      "path": "/redemptions/preview",
+      "body": { "wallet_type": "Regular", "points": 500 }
+    },
+    "create": {
+      "method": "POST",
+      "path": "/redemptions",
+      "body": {
+        "wallet_type": "Regular",
+        "redeem_mode": "NEFT",
+        "points": 500,
+        "bank_confirmed": true
+      }
+    }
+  },
+  "scheme": {
+    "current": { "method": "GET", "path": "/scheme/current" },
+    "slabs": { "method": "GET", "path": "/scheme/slabs" },
+    "boosters": { "method": "GET", "path": "/scheme/boosters" }
+  },
+  "bankAccounts": {
+    "list": { "method": "GET", "path": "/bank-accounts" },
+    "save": {
+      "method": "POST",
+      "path": "/bank-accounts",
+      "body": {
+        "account_holder_name": "Test Retailer Owner",
+        "account_number": "123456789012",
+        "bank_name": "HDFC Bank",
+        "ifsc_code": "HDFC0001234"
+      }
+    }
+  }
+}

@@ -1,0 +1,127 @@
+import React, { useEffect, useState } from "react";
+import { Keyboard, Text, View } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { useFonts } from "expo-font";
+import {
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold
+} from "@expo-google-fonts/plus-jakarta-sans";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import Toast from "@/components/common/Toast";
+import HomeBottomTabs from "@/components/home/HomeBottomTabs";
+import { Route, SessionDraft } from "@/navigation/routes";
+import LoadingScreen from "@/screens/common/LoadingScreen";
+import LoginScreen from "@/screens/auth/LoginScreen";
+import RegisterScreen from "@/screens/auth/RegisterScreen";
+import SplashScreen from "@/screens/auth/SplashScreen";
+import HomeScreen from "@/screens/home/HomeScreen";
+import InvoicesScreen from "@/screens/home/InvoicesScreen";
+import InvoiceDetailScreen from "@/screens/home/InvoiceDetailScreen";
+import KycScreen from "@/screens/home/KycScreen";
+import MenuScreen from "@/screens/home/MenuScreen";
+import ProfileScreen from "@/screens/home/ProfileScreen";
+import RedemptionHistoryScreen from "@/screens/home/RedemptionHistoryScreen";
+import RedemptionScreen from "@/screens/home/RedemptionScreen";
+import SchemeScreen from "@/screens/home/SchemeScreen";
+import WalletScreen from "@/screens/home/WalletScreen";
+import { setToastHandler, ToastPayload } from "@/services/toast";
+import { styles } from "@/styles/appStyles";
+import { SchemeInfo } from "@/types/api";
+
+const textDefaults = Text as unknown as { defaultProps?: { allowFontScaling?: boolean } };
+textDefaults.defaultProps = {
+  ...(textDefaults.defaultProps || {}),
+  allowFontScaling: false
+};
+
+const appRoutesWithTabs: Route[] = [
+  "Home",
+  "Slab",
+  "Booster",
+  "Invoices",
+  "Redeem",
+  "RedeemSlab",
+  "RedeemBooster",
+  "RedemptionHistory",
+  "Scheme",
+  "Menu",
+  "Profile",
+  "Kyc"
+];
+
+export default function App() {
+  const [fontsLoaded, fontError] = useFonts({
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold
+  });
+  const [route, setRoute] = useState<Route>("Splash");
+  const [previous, setPrevious] = useState<Route>("Home");
+  const [draft, setDraft] = useState<SessionDraft | null>(null);
+  const [toast, setToast] = useState<ToastPayload | null>(null);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+  const [selectedScheme, setSelectedScheme] = useState<SchemeInfo | null>(null);
+  const [dashboardSchemes, setDashboardSchemes] = useState<SchemeInfo[]>([]);
+
+  useEffect(() => {
+    setToastHandler((payload) => {
+      setToast(payload);
+      setTimeout(() => setToast(null), 3400);
+    });
+    return () => setToastHandler(null);
+  }, []);
+
+  const go = (next: Route) => {
+    setPrevious(route);
+    setRoute(next);
+  };
+  const showBottomTabs = appRoutesWithTabs.includes(route);
+
+  if (!fontsLoaded && !fontError) {
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <LoadingScreen message="Loading app" />
+      </SafeAreaProvider>
+    );
+  }
+
+  return (
+    <SafeAreaProvider>
+      <StatusBar style="dark" />
+      <View
+        style={{ flex: 1 }}
+        onStartShouldSetResponderCapture={() => {
+          Keyboard.dismiss();
+          return false;
+        }}
+      >
+        <View style={showBottomTabs ? styles.appContentWithTabs : styles.appContent}>
+          {route === "Splash" && <SplashScreen onDone={setRoute} />}
+          {route === "Login" && <LoginScreen onRegister={(nextDraft) => { setDraft(nextDraft); setRoute("Register"); }} onDone={() => setRoute("Home")} />}
+          {route === "Register" && draft && <RegisterScreen mobile={draft.mobile} email={draft.email || ""} onDone={() => setRoute("Home")} />}
+          {route === "Home" && <HomeScreen go={go} onOpenScheme={(scheme, schemes) => { setSelectedScheme(scheme); setDashboardSchemes(schemes); go("Scheme"); }} />}
+          {route === "Slab" && <WalletScreen type="SLAB" go={go} />}
+          {route === "Booster" && <WalletScreen type="BOOSTER" go={go} />}
+          {route === "Invoices" && <InvoicesScreen go={go} onOpenInvoice={(id) => { setSelectedInvoiceId(id); go("InvoiceDetail"); }} />}
+          {route === "InvoiceDetail" && selectedInvoiceId && <InvoiceDetailScreen invoiceId={selectedInvoiceId} onBack={() => setRoute("Invoices")} />}
+          {route === "Redeem" && <RedemptionScreen go={go} />}
+          {route === "RedeemSlab" && <RedemptionScreen go={go} initialWallet="SLAB" />}
+          {route === "RedeemBooster" && <RedemptionScreen go={go} initialWallet="BOOSTER" />}
+          {route === "RedemptionHistory" && <RedemptionHistoryScreen go={go} />}
+          {route === "Scheme" && <SchemeScreen go={go} selectedScheme={selectedScheme} dashboardSchemes={dashboardSchemes} />}
+          {route === "Menu" && <MenuScreen go={go} back={() => setRoute(previous === "Menu" ? "Home" : previous)} />}
+          {route === "Profile" && <ProfileScreen go={go} />}
+          {route === "Kyc" && <KycScreen go={go} />}
+        </View>
+          {showBottomTabs ? <HomeBottomTabs go={go} route={route} /> : null}
+          {toast ? <Toast payload={toast} onClose={() => setToast(null)} /> : null}
+      </View>
+    </SafeAreaProvider>
+  );
+}

@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "FieldKonnect Loyalty KSB",
+    "slug": "ksb-retailer-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.anonymous.ksbretailerapp"
+    },
+    "android": {
+      "package": "com.anonymous.ksbretailerapp",
+      "permissions": [
+        "CAMERA",
+        "READ_MEDIA_IMAGES",
+        "READ_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "FieldKonnect Loyalty KSB uses photo library access so you can select GST, PAN, Aadhaar and bank proof images for KYC verification.",
+          "cameraPermission": "FieldKonnect Loyalty KSB uses the camera to capture GST, PAN, Aadhaar and bank proof documents for KYC verification."
+        }
+      ]
+    ],
+    "extra": {
+      "apiBaseUrl": "https://app.ksbindia.co.in/FieldKonnect_API/api"
+    }
+  }
+}

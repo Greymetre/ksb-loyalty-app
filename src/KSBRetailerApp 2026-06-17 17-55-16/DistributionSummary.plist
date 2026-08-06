@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>KSBRetailerApp.ipa</key>
+	<array>
+		<dict>
+			<key>architectures</key>
+			<array>
+				<string>arm64</string>
+			</array>
+			<key>buildNumber</key>
+			<string>1</string>
+			<key>certificate</key>
+			<dict>
+				<key>SHA1</key>
+				<string>D3209E83B5417B4484481D3A131E7A8C7FCB93D4</string>
+				<key>dateExpires</key>
+				<string>06/06/27</string>
+				<key>type</key>
+				<string>Cloud Managed Apple Distribution</string>
+			</dict>
+			<key>embeddedBinaries</key>
+			<array>
+				<dict>
+					<key>architectures</key>
+					<array>
+						<string>arm64</string>
+					</array>
+					<key>buildNumber</key>
+					<string>0.12.0</string>
+					<key>certificate</key>
+					<dict>
+						<key>SHA1</key>
+						<string>D3209E83B5417B4484481D3A131E7A8C7FCB93D4</string>
+						<key>dateExpires</key>
+						<string>06/06/27</string>
+						<key>type</key>
+						<string>Cloud Managed Apple Distribution</string>
+					</dict>
+					<key>name</key>
+					<string>hermes.framework</string>
+					<key>symbols</key>
+					<true/>
+					<key>team</key>
+					<dict>
+						<key>id</key>
+						<string>3AT8Y7HDP2</string>
+						<key>name</key>
+						<string>Greymetre Consultants Private Limited</string>
+					</dict>
+					<key>versionNumber</key>
+					<string>0.12.0</string>
+				</dict>
+			</array>
+			<key>entitlements</key>
+			<dict>
+				<key>application-identifier</key>
+				<string>3AT8Y7HDP2.com.fieldkonnect.ksbretailerapp</string>
+				<key>beta-reports-active</key>
+				<true/>
+				<key>com.apple.developer.team-identifier</key>
+				<string>3AT8Y7HDP2</string>
+				<key>get-task-allow</key>
+				<false/>
+			</dict>
+			<key>name</key>
+			<string>KSBRetailerApp.app</string>
+			<key>profile</key>
+			<dict>
+				<key>UUID</key>
+				<string>f20cd4f3-584c-40a4-abdb-e4f3fd0a30e6</string>
+				<key>dateExpires</key>
+				<string>06/06/27</string>
+				<key>name</key>
+				<string>iOS Team Store Provisioning Profile: com.fieldkonnect.ksbretailerapp</string>
+			</dict>
+			<key>symbols</key>
+			<true/>
+			<key>team</key>
+			<dict>
+				<key>id</key>
+				<string>3AT8Y7HDP2</string>
+				<key>name</key>
+				<string>Greymetre Consultants Private Limited</string>
+			</dict>
+			<key>versionNumber</key>
+			<string>1.0.0</string>
+		</dict>
+	</array>
+</dict>
+</plist>
