@@ -1,7 +1,10 @@
 import { apiClient } from "@/services/apiClient";
 import { money } from "@/utils/formatters";
 
-export type InvoiceStatus = "approved" | "pending" | "rejected" | "credited" | "reversed";
+// Loyalty invoices expose three customer-facing states: Approved after HO
+// approval, Rejected when explicitly rejected, and Pending at every other
+// workflow stage (including SS and Sales approval).
+export type InvoiceStatus = "approved" | "pending" | "rejected";
 
 export type InvoiceListItem = {
   id: string;
@@ -40,7 +43,6 @@ export type InvoiceListSummary = {
   rewardsCreditedDisplay: string;
   approvedInvoices: number;
   pendingInvoices: number;
-  rejectedInvoices: number;
   totalTurnover: number;
   totalTurnoverDisplay: string;
 };
@@ -103,9 +105,10 @@ const normalizeItem = (raw: any): InvoiceListItem => {
   const rewardAmount = numberOr(raw?.reward_amount ?? raw?.rewardAmount ?? raw?.points ?? raw?.scheme_points, 0);
   const expectedRewardAmount = numberOr(raw?.expected_reward_amount ?? raw?.expectedRewardAmount, rewardAmount);
   const amount = numberOr(raw?.amount ?? raw?.invoice_amount ?? raw?.invoiceAmount, 0);
-  const isPending = Boolean(raw?.is_pending) || status.includes("pending") || Number(raw?.approval_status) === 1;
-  const isRejected = status.includes("reject") || Number(raw?.approval_status) === 4;
-  const isRewardCredited = Boolean(raw?.is_reward_credited) || (!isPending && !isRejected && rewardAmount > 0);
+  const isRejected = Number(raw?.approval_status) === 4 || status === "rejected" || status.includes("reject");
+  const isApproved = !isRejected && (Number(raw?.approval_status) === 3 || status === "approved" || status.includes("approved ho"));
+  const isPending = !isApproved && !isRejected;
+  const isRewardCredited = isApproved && (Boolean(raw?.is_reward_credited) || rewardAmount > 0);
 
   return {
     id: String(raw?.id ?? invoiceNumber),
@@ -119,8 +122,8 @@ const normalizeItem = (raw: any): InvoiceListItem => {
     expectedRewardAmount,
     expectedRewardDisplay: String(raw?.expected_reward_display ?? raw?.expectedRewardDisplay ?? (expectedRewardAmount ? `+${money(expectedRewardAmount)}` : "—")),
     rewardLabel: String(raw?.reward_label ?? raw?.rewardLabel ?? "Reward"),
-    status: isRejected ? "rejected" : isPending ? "pending" : isRewardCredited ? "approved" : "approved",
-    statusLabel: String(raw?.status_label ?? raw?.statusLabel ?? raw?.approval_status_label ?? (isPending ? "Pending" : "Approved")),
+    status: isRejected ? "rejected" : isApproved ? "approved" : "pending",
+    statusLabel: isRejected ? "Rejected" : isApproved ? "Approved" : "Pending",
     isRewardCredited,
     isPending,
     attachment: raw?.attachment ?? null,
@@ -173,7 +176,6 @@ const normalizeResponse = (raw: any): InvoiceListResponse => {
       rewardsCreditedDisplay: String(raw?.summary?.rewards_credited_display ?? raw?.summary?.rewardsCreditedDisplay ?? money(rewardsCredited)),
       approvedInvoices: numberOr(raw?.summary?.approved_invoices ?? raw?.summary?.approvedInvoices, items.filter((item: InvoiceListItem) => item.status === "approved").length),
       pendingInvoices: numberOr(raw?.summary?.pending_invoices ?? raw?.summary?.pendingInvoices, items.filter((item: InvoiceListItem) => item.status === "pending").length),
-      rejectedInvoices: numberOr(raw?.summary?.rejected_invoices ?? raw?.summary?.rejectedInvoices, items.filter((item: InvoiceListItem) => item.status === "rejected").length),
       totalTurnover,
       totalTurnoverDisplay: String(raw?.summary?.total_turnover_display ?? raw?.summary?.totalTurnoverDisplay ?? money(totalTurnover))
     },
@@ -189,7 +191,7 @@ const normalizeDetail = (raw: any): InvoiceDetail => {
   const statusKey = String(raw?.status_key ?? raw?.statusKey ?? source?.approval_status_label ?? source?.approvalStatusLabel ?? "").toLowerCase();
   const listItem = normalizeItem({
     ...source,
-    status: statusKey.includes("approved") ? "approved" : statusKey.includes("reject") ? "rejected" : "pending",
+    status: statusKey === "rejected" || statusKey.includes("reject") ? "rejected" : statusKey === "approved" || statusKey.includes("approved ho") ? "approved" : "pending",
     is_pending: raw?.is_pending ?? raw?.isPending,
     reward_amount: source?.scheme_points ?? source?.schemePoints,
     expected_reward_amount: source?.expected_scheme_points ?? source?.expectedSchemePoints,

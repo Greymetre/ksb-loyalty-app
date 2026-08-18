@@ -2,9 +2,10 @@ import React, { useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from "react-native";
 import AuthScaffold from "@/components/auth/AuthScaffold";
 import { authApi } from "@/services/authApi";
-import { SessionDraft } from "@/navigation/routes";
+import { Route, SessionDraft } from "@/navigation/routes";
 import { styles } from "@/styles/appStyles";
 import { isValidIndianMobile } from "@/utils/validation";
+import { authResponseUser, customerLandingRoute } from "@/services/customerRouting";
 
 type Stage = "mobile" | "email" | "password" | "testing_notice" | "set_password";
 
@@ -13,7 +14,7 @@ export default function LoginScreen({
   onDone
 }: {
   onRegister: (draft: SessionDraft) => void;
-  onDone: () => void;
+  onDone: (route: Route) => void;
 }) {
   const [stage, setStage] = useState<Stage>("mobile");
   const [mobile, setMobile] = useState("");
@@ -63,8 +64,8 @@ export default function LoginScreen({
       if (stage === "mobile") await runLookup();
       if (stage === "email") await runLookup(email.trim());
       if (stage === "password") {
-        await authApi.login(mobile, password);
-        onDone();
+        const response = await authApi.login(mobile, password);
+        onDone(customerLandingRoute(authResponseUser(response)));
       }
       if (stage === "set_password") {
         if (password.length < 6 || password !== confirmPassword) return;
@@ -114,7 +115,7 @@ export default function LoginScreen({
           ? testingCode.length === 6
           : code.length === 6 && passwordValid && password === confirmPassword;
 
-  const title = stage === "mobile" ? "Login to your\nRetailer Account"
+  const title = stage === "mobile" ? "Login to your\nAccount"
     : stage === "email" ? "Enter your email"
       : stage === "password" ? "Enter your password"
         : stage === "testing_notice" ? "Testing server notice"

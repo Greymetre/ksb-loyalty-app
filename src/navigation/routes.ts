@@ -6,6 +6,7 @@ export type Route =
   | "SetPassword"
   | "Register"
   | "Home"
+  | "DealerHome"
   | "Slab"
   | "Booster"
   | "Invoices"

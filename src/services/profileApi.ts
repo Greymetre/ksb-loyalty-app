@@ -18,6 +18,7 @@ export type ProfileData = {
   pincodeId?: number | null;
   customerType: string;
   kycStatus: string;
+  distributionArea: string;
 };
 
 const sourceOf = (raw: any) => raw?.data?.profile || raw?.data?.user || raw?.data?.retailer || raw?.data || raw?.profile || raw?.user || raw?.retailer || raw || {};
@@ -55,7 +56,16 @@ const normalizeProfile = (raw: any): ProfileData => {
     pincode: textValue(source.pincode, source.pin_code, source.pinCode, customFields.pincode, customFields.pin_code, customFields.pinCode),
     pincodeId: maybeNumber(source.pincode_id ?? source.pincodeId ?? source.pin_code_id ?? source.pinCodeId ?? source.pincode?.id ?? customFields.pincode_id ?? customFields.pincodeId),
     customerType: textValue(source.customer_type_name, source.customerTypeName, source.customer_type, source.customerType, customFields.customer_type, customFields.customerType),
-    kycStatus: textValue(source.kyc_status, source.kycStatus, source.kyc_status_label, source.kycStatusLabel, source.kyc?.status)
+    kycStatus: textValue(source.kyc_status, source.kycStatus, source.kyc_status_label, source.kycStatusLabel, source.kyc?.status),
+    distributionArea: textValue(
+      source.distribution_area,
+      source.distributionArea,
+      customFields.distribution_area,
+      customFields.distributionArea,
+      [textValue(customFields.zone, customFields.zone_name, customFields.zoneName), textValue(customFields.branch_name, customFields.branchName, customFields.branch)]
+        .filter(Boolean)
+        .join(" · ")
+    )
   };
 };
 

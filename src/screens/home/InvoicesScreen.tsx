@@ -17,7 +17,6 @@ const emptyInvoiceData: InvoiceListResponse = {
     rewardsCreditedDisplay: "₹0",
     approvedInvoices: 0,
     pendingInvoices: 0,
-    rejectedInvoices: 0,
     totalTurnover: 0,
     totalTurnoverDisplay: "₹0"
   },
@@ -174,25 +173,25 @@ function MonthSection({ group, onOpenInvoice }: { group: InvoiceMonthGroup; onOp
 function InvoiceListRow({ invoice, isLast, onPress }: { invoice: InvoiceListItem; isLast: boolean; onPress: () => void }) {
   const pending = invoice.isPending || invoice.status === "pending";
   const rejected = invoice.status === "rejected";
+  const statusLabel = rejected ? "REJECTED" : pending ? "PENDING" : "APPROVED";
   return (
     <Pressable onPress={onPress} style={[screenStyles.invoiceRow, isLast && screenStyles.invoiceRowLast]}>
       <View style={[screenStyles.docIconBox, pending && screenStyles.docIconPending, rejected && screenStyles.docIconRejected]}>
         <Text style={screenStyles.docIcon}>▤</Text>
         <View style={[screenStyles.statusDot, pending && screenStyles.statusDotPending, rejected && screenStyles.statusDotRejected]}>
-          <Text style={screenStyles.statusDotText}>{pending ? "⌛" : rejected ? "!" : "✓"}</Text>
+          <Text style={screenStyles.statusDotText}>{rejected ? "!" : pending ? "⌛" : "✓"}</Text>
         </View>
       </View>
       <View style={screenStyles.invoiceMain}>
         <View style={screenStyles.invoiceTitleRow}>
           <Text numberOfLines={1} style={screenStyles.invoiceNumber}>{invoice.invoiceNumberDisplay}</Text>
-          {pending ? <Text style={screenStyles.pendingBadge}>PENDING</Text> : null}
-          {rejected ? <Text style={screenStyles.rejectedBadge}>REJECTED</Text> : null}
+          <Text style={[screenStyles.pendingBadge, !pending && screenStyles.approvedBadge, rejected && screenStyles.rejectedBadge]}>{statusLabel}</Text>
         </View>
         <Text numberOfLines={1} style={screenStyles.invoiceSub}>{invoice.displayDate} · {invoice.amountDisplay}</Text>
       </View>
       <View style={screenStyles.rewardBlock}>
-        <Text style={[screenStyles.rewardValue, pending && screenStyles.pendingReward, rejected && screenStyles.pendingReward]}>{pending ? invoice.expectedRewardDisplay : rejected ? "—" : invoice.rewardDisplay}</Text>
-        <Text style={screenStyles.rewardLabel}>{pending ? "Awaiting Approval" : rejected ? "Rejected" : "Reward Earned"}</Text>
+        <Text style={[screenStyles.rewardValue, (pending || rejected) && screenStyles.pendingReward]}>{rejected ? "—" : pending ? invoice.expectedRewardDisplay : invoice.rewardDisplay}</Text>
+        <Text style={screenStyles.rewardLabel}>{rejected ? "No reward" : pending ? "Awaiting Approval" : "Reward Earned"}</Text>
       </View>
       <Text style={screenStyles.chevron}>›</Text>
     </Pressable>
@@ -396,7 +395,7 @@ const screenStyles = StyleSheet.create({
   invoiceRowLast: { borderBottomWidth: 0 },
   docIconBox: { width: 54, height: 54, borderRadius: 16, backgroundColor: "#e8f6f2", alignItems: "center", justifyContent: "center", marginRight: 14 },
   docIconPending: { backgroundColor: "#fff8df" },
-  docIconRejected: { backgroundColor: "#fff0f0" },
+  docIconRejected: { backgroundColor: "#fff0f1" },
   docIcon: { color: "#77bde6", fontSize: 29, marginTop: -1 },
   statusDot: { position: "absolute", right: -3, bottom: -3, width: 24, height: 24, borderRadius: 12, backgroundColor: colors.primary, borderWidth: 3, borderColor: colors.white, alignItems: "center", justifyContent: "center" },
   statusDotPending: { backgroundColor: "#a97900" },
@@ -406,7 +405,8 @@ const screenStyles = StyleSheet.create({
   invoiceTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   invoiceNumber: { flexShrink: 1, fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 15 },
   pendingBadge: { borderRadius: 999, overflow: "hidden", paddingHorizontal: 9, paddingVertical: 3, backgroundColor: "#fff4d8", fontFamily: jakarta.extraBold, color: "#a97900", fontSize: 9 },
-  rejectedBadge: { borderRadius: 999, overflow: "hidden", paddingHorizontal: 9, paddingVertical: 3, backgroundColor: "#ffe9e9", fontFamily: jakarta.extraBold, color: colors.danger, fontSize: 9 },
+  approvedBadge: { backgroundColor: "#e5f8ee", color: "#13875a" },
+  rejectedBadge: { backgroundColor: "#ffe9e9", color: colors.danger },
   invoiceSub: { marginTop: 5, fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 11.5 },
   rewardBlock: { width: 92, alignItems: "flex-end", marginLeft: 8 },
   rewardValue: { fontFamily: jakarta.extraBold, color: colors.primary, fontSize: 15 },

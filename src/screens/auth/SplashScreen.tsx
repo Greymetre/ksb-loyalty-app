@@ -20,8 +20,9 @@ import Svg, {
 
 import KsbLogoMark from "../../../assets/ksb-logo-data.svg";
 import { colors } from "@/constants/colors";
-import { getToken } from "@/services/storage";
+import { getToken, getUser } from "@/services/storage";
 import { Route } from "@/navigation/routes";
+import { customerLandingRoute } from "@/services/customerRouting";
 import { jakarta } from "@/styles/appStyles";
 
 const SPLASH_DURATION_MS = 2500;
@@ -95,7 +96,8 @@ export default function SplashScreen({ onDone }: { onDone: (route: Route) => voi
 
     const timer = setTimeout(async () => {
       const token = await getToken();
-      onDone(token ? "Home" : "Login");
+      const user = token ? await getUser() : null;
+      onDone(token ? customerLandingRoute(user) : "Login");
     }, SPLASH_DURATION_MS);
 
     return () => {

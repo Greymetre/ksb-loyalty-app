@@ -73,7 +73,6 @@ export type DashboardData = {
   totalInvoices?: number;
   approvedInvoices?: number;
   pendingInvoices?: number;
-  rejectedInvoices?: number;
   activeWallets?: number;
   invoiceCount: number;
   recentInvoices?: DashboardInvoice[];

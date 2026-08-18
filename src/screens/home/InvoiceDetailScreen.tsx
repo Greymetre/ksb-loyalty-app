@@ -18,13 +18,13 @@ export default function InvoiceDetailScreen({ invoiceId, onBack }: { invoiceId: 
 
   const pending = invoice.status === "pending";
   const rejected = invoice.status === "rejected";
-  const statusLabel = pending ? "Awaiting Approval" : rejected ? "Rejected" : "Approved";
+  const statusLabel = rejected ? "Rejected" : pending ? "Pending" : "Approved";
   return <Screen>
     <Header title={`Invoice #${invoice.invoiceNumber}`} onBack={onBack} />
     <View style={s.page}>
       <View style={[s.statusCard, pending && s.pendingCard, rejected && s.rejectedCard]}>
         <Text style={s.statusTitle}>{statusLabel}</Text>
-        <Text style={s.statusSub}>{pending ? `${invoice.expectedRewardDisplay} expected reward` : rejected ? "This invoice was rejected" : invoice.rewardAmount > 0 ? `${invoice.rewardDisplay} reward earned` : "Approved · No reward earned"}</Text>
+        <Text style={s.statusSub}>{rejected ? "This invoice was rejected. No reward will be credited." : pending ? `${invoice.expectedRewardDisplay} expected reward` : invoice.rewardAmount > 0 ? `${invoice.rewardDisplay} reward earned` : "Approved · No reward earned"}</Text>
       </View>
       <View style={s.card}>
         <Text style={s.sectionTitle}>Invoice Details</Text>
@@ -32,7 +32,7 @@ export default function InvoiceDetailScreen({ invoiceId, onBack }: { invoiceId: 
         <Detail label="Invoice date" value={invoice.invoiceDate || invoice.displayDate} />
         <Detail label="Scheme" value={[invoice.schemeName, invoice.schemeCode].filter(Boolean).join(" · ") || "—"} />
         <Detail label="Slab" value={invoice.tierName || "Not reached"} />
-        <Detail label="Reward" value={pending ? `${invoice.expectedRewardDisplay} (Awaiting Approval)` : invoice.rewardAmount > 0 ? invoice.rewardDisplay : "No reward earned"} />
+        <Detail label="Reward" value={rejected ? "No reward earned (Rejected)" : pending ? `${invoice.expectedRewardDisplay} (Awaiting Approval)` : invoice.rewardAmount > 0 ? invoice.rewardDisplay : "No reward earned"} />
         {invoice.hint ? <Detail label="Next slab" value={invoice.hint} /> : null}
         {invoice.approvalRemark ? <Detail label="Approval remark" value={invoice.approvalRemark} /> : null}
       </View>
@@ -49,7 +49,7 @@ const s = StyleSheet.create({
   page: { padding: 18 },
   statusCard: { backgroundColor: "#e7f8ee", borderRadius: 16, padding: 16, marginBottom: 14 },
   pendingCard: { backgroundColor: "#fff5d9" },
-  rejectedCard: { backgroundColor: "#ffe8e8" },
+  rejectedCard: { backgroundColor: "#fff0f1" },
   statusTitle: { color: "#143053", fontSize: 17, fontWeight: "900" },
   statusSub: { color: "#64748b", fontSize: 12, marginTop: 5, fontWeight: "700" },
   card: { backgroundColor: "#fff", borderRadius: 17, padding: 16, borderWidth: 1, borderColor: "#e7edf5" },

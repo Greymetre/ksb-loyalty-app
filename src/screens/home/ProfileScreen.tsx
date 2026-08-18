@@ -28,7 +28,8 @@ const emptyProfile: ProfileData = {
   pincode: "",
   pincodeId: null,
   customerType: "",
-  kycStatus: ""
+  kycStatus: "",
+  distributionArea: ""
 };
 
 export default function ProfileScreen({ go }: { go: (route: Route) => void }) {

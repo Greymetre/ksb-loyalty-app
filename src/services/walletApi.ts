@@ -129,18 +129,22 @@ const findWalletSource = (source: any, walletType: NonNullable<SchemeTier["walle
   });
 };
 
-const normalizeRecentInvoice = (raw: any): DashboardInvoice => ({
+const normalizeRecentInvoice = (raw: any): DashboardInvoice => {
+  const status = String(raw?.status ?? raw?.approval_status_key ?? raw?.approval_status_label ?? "").toLowerCase();
+  const approved = Number(raw?.approval_status) === 3 || status === "approved" || status.includes("approved ho");
+  return {
   id: String(raw?.id ?? raw?.invoice_number ?? raw?.invoiceNumber ?? ""),
   invoiceNumber: String(raw?.invoice_number ?? raw?.invoiceNumber ?? raw?.id ?? ""),
   date: raw?.invoice_date ?? raw?.invoiceDate ?? raw?.date,
   amount: numberOr(raw?.amount ?? raw?.invoice_amount, 0),
-  points: numberOr(raw?.points ?? raw?.scheme_points ?? raw?.reward, 0),
+  points: numberOr(raw?.points ?? raw?.scheme_points ?? raw?.reward_amount ?? raw?.rewardAmount ?? raw?.reward, 0),
   schemeTag: raw?.scheme_tag ?? raw?.schemeTag,
   schemeName: raw?.scheme_name ?? raw?.schemeName,
   tierName: raw?.tier_name ?? raw?.tierName,
   rewardLabel: raw?.scheme_reward_value ? `${numberOr(raw.scheme_reward_value, 0)}%` : raw?.reward_label ?? raw?.rewardLabel,
-  statusLabel: raw?.approval_status_label ?? raw?.status_label ?? raw?.status
-});
+  statusLabel: approved ? "Approved" : "Pending"
+  };
+};
 
 const normalizeWalletSummary = (raw: any, fallback: WalletSummary): WalletSummary => {
   if (typeof raw === "number" || typeof raw === "string") {
@@ -238,7 +242,6 @@ const normalizeDashboard = (raw: any): DashboardData => {
     totalInvoices: numberOr(source.totalInvoices ?? source.total_invoices, 0),
     approvedInvoices: numberOr(source.approvedInvoices ?? source.approved_invoices, 0),
     pendingInvoices: numberOr(source.pendingInvoices ?? source.pending_invoices, 0),
-    rejectedInvoices: numberOr(source.rejectedInvoices ?? source.rejected_invoices, 0),
     activeWallets: activeWalletsRaw == null ? undefined : numberOr(activeWalletsRaw, 0),
     invoiceCount: numberOr(source.invoiceCount ?? source.invoice_count ?? source.invoices_count ?? source.total_invoices, 0),
     recentInvoices: Array.isArray(source.recentInvoices)

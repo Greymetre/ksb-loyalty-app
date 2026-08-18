@@ -27,6 +27,7 @@ import RedemptionHistoryScreen from "@/screens/home/RedemptionHistoryScreen";
 import RedemptionScreen from "@/screens/home/RedemptionScreen";
 import SchemeScreen from "@/screens/home/SchemeScreen";
 import WalletScreen from "@/screens/home/WalletScreen";
+import DealerHomeScreen from "@/screens/dealer/DealerHomeScreen";
 import { setToastHandler, ToastPayload } from "@/services/toast";
 import { styles } from "@/styles/appStyles";
 import { SchemeInfo } from "@/types/api";
@@ -61,6 +62,7 @@ export default function App() {
     PlusJakartaSans_800ExtraBold
   });
   const [route, setRoute] = useState<Route>("Splash");
+  const [routeVisit, setRouteVisit] = useState(0);
   const [previous, setPrevious] = useState<Route>("Home");
   const [draft, setDraft] = useState<SessionDraft | null>(null);
   const [toast, setToast] = useState<ToastPayload | null>(null);
@@ -79,6 +81,9 @@ export default function App() {
   const go = (next: Route) => {
     setPrevious(route);
     setRoute(next);
+    // A bottom-tab press can target the current route. Incrementing this
+    // visit key remounts that data screen so its API is fetched again.
+    setRouteVisit((visit) => visit + 1);
   };
   const showBottomTabs = appRoutesWithTabs.includes(route);
 
@@ -101,11 +106,12 @@ export default function App() {
           return false;
         }}
       >
-        <View style={showBottomTabs ? styles.appContentWithTabs : styles.appContent}>
+        <View key={`${route}:${routeVisit}`} style={showBottomTabs ? styles.appContentWithTabs : styles.appContent}>
           {route === "Splash" && <SplashScreen onDone={setRoute} />}
-          {route === "Login" && <LoginScreen onRegister={(nextDraft) => { setDraft(nextDraft); setRoute("Register"); }} onDone={() => setRoute("Home")} />}
+          {route === "Login" && <LoginScreen onRegister={(nextDraft) => { setDraft(nextDraft); setRoute("Register"); }} onDone={setRoute} />}
           {route === "Register" && draft && <RegisterScreen mobile={draft.mobile} email={draft.email || ""} onDone={() => setRoute("Home")} />}
           {route === "Home" && <HomeScreen go={go} onOpenScheme={(scheme, schemes) => { setSelectedScheme(scheme); setDashboardSchemes(schemes); go("Scheme"); }} />}
+          {route === "DealerHome" && <DealerHomeScreen onLogout={() => setRoute("Login")} />}
           {route === "Slab" && <WalletScreen type="SLAB" go={go} />}
           {route === "Booster" && <WalletScreen type="BOOSTER" go={go} />}
           {route === "Invoices" && <InvoicesScreen go={go} onOpenInvoice={(id) => { setSelectedInvoiceId(id); go("InvoiceDetail"); }} />}
