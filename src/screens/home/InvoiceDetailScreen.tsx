@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from "react";
-import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Header } from "@/components/Header";
 import { Screen } from "@/components/Screen";
 import LoadingScreen from "@/screens/common/LoadingScreen";
 import EmptyScreen from "@/screens/common/EmptyScreen";
 import { apiFileUrl } from "@/services/apiClient";
 import { InvoiceDetail, invoiceApi } from "@/services/invoiceApi";
+import InvoiceAttachmentViewer from "@/components/InvoiceAttachmentViewer";
 
 export default function InvoiceDetailScreen({ invoiceId, onBack }: { invoiceId: string; onBack: () => void }) {
   const [invoice, setInvoice] = useState<InvoiceDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [attachment, setAttachment] = useState<string | null>(null);
   useEffect(() => {
     invoiceApi.detail(invoiceId).then(setInvoice).catch(() => setInvoice(null)).finally(() => setLoading(false));
   }, [invoiceId]);
@@ -36,8 +38,9 @@ export default function InvoiceDetailScreen({ invoiceId, onBack }: { invoiceId: 
         {invoice.hint ? <Detail label="Next slab" value={invoice.hint} /> : null}
         {invoice.approvalRemark ? <Detail label="Approval remark" value={invoice.approvalRemark} /> : null}
       </View>
-      {invoice.attachment ? <Pressable style={s.attachmentButton} onPress={() => Linking.openURL(apiFileUrl(invoice.attachment))}><Text style={s.attachmentText}>View / Download Invoice Attachment</Text></Pressable> : null}
+      {invoice.attachment ? <Pressable style={s.attachmentButton} onPress={() => setAttachment(apiFileUrl(invoice.attachment))}><Text style={s.attachmentText}>View / Download Invoice Attachment</Text></Pressable> : null}
     </View>
+    <InvoiceAttachmentViewer uri={attachment} onClose={() => setAttachment(null)} />
   </Screen>;
 }
 

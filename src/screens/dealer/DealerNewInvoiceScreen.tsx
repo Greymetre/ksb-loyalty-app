@@ -6,7 +6,7 @@ import { colors } from "../../constants/colors";
 import { DealerInvoiceItem, DealerRetailer, DealerScheme, UploadAsset, dealerInvoiceApi } from "../../services/dealerInvoiceApi";
 import { showToast } from "../../services/toast";
 import { jakarta } from "../../styles/appStyles";
-import InvoiceAttachmentViewer from "./InvoiceAttachmentViewer";
+import InvoiceAttachmentViewer from "@/components/InvoiceAttachmentViewer";
 
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 export default function DealerNewInvoiceScreen({ onBack, onCreated, invoice: initialInvoice }: { onBack: () => void; onCreated: () => void; invoice?: DealerInvoiceItem | null }) {
@@ -17,35 +17,35 @@ export default function DealerNewInvoiceScreen({ onBack, onCreated, invoice: ini
   const [asset, setAsset] = useState<UploadAsset | null>(null); const [picker, setPicker] = useState<"retailer" | "scheme" | null>(null);
   const [previewAttachment, setPreviewAttachment] = useState<string | null>(null);
   const [search, setSearch] = useState(""); const [calendar, setCalendar] = useState(false); const [saving, setSaving] = useState(false); const [loading, setLoading] = useState(true);
-  useEffect(() => { dealerInvoiceApi.retailers().then((rows: DealerRetailer[]) => { setRetailers(rows); if (initialInvoice) setRetailer(current => rows.find((x: DealerRetailer) => x.id === initialInvoice.retailerId) || current); }).catch(() => showToast("Assigned retailers load nahi ho paye.")).finally(() => setLoading(false)); }, [initialInvoice]);
+  useEffect(() => { dealerInvoiceApi.retailers().then((rows: DealerRetailer[]) => { setRetailers(rows); if (initialInvoice) setRetailer(current => rows.find((x: DealerRetailer) => x.id === initialInvoice.retailerId) || current); }).catch(() => showToast("Unable to load assigned retailers.")).finally(() => setLoading(false)); }, [initialInvoice]);
   useEffect(() => {
     if (picker !== "retailer") return;
     const timer = setTimeout(() => {
       dealerInvoiceApi.retailers(search)
         .then((rows: DealerRetailer[]) => setRetailers(rows))
-        .catch(() => showToast("Retailer search load nahi ho payi."));
+        .catch(() => showToast("Unable to search retailers."));
     }, 300);
     return () => clearTimeout(timer);
   }, [picker, search]);
-  useEffect(() => { setScheme(null); setSchemes([]); if (!retailer || !invoiceDate) return; dealerInvoiceApi.schemes(retailer.id, invoiceDate).then((rows: DealerScheme[]) => { setSchemes(rows); if (initialInvoice?.schemeId) setScheme(rows.find((x: DealerScheme) => x.id === initialInvoice.schemeId) || null); }).catch(() => showToast("Schemes load nahi ho payi.")); }, [retailer, invoiceDate, initialInvoice?.schemeId]);
+  useEffect(() => { setScheme(null); setSchemes([]); if (!retailer || !invoiceDate) return; dealerInvoiceApi.schemes(retailer.id, invoiceDate).then((rows: DealerScheme[]) => { setSchemes(rows); if (initialInvoice?.schemeId) setScheme(rows.find((x: DealerScheme) => x.id === initialInvoice.schemeId) || null); }).catch(() => showToast("Unable to load schemes.")); }, [retailer, invoiceDate, initialInvoice?.schemeId]);
   const filtered = useMemo(() => retailers.filter(x => `${x.code} ${x.name} ${x.shopName} ${x.mobile}`.toLowerCase().includes(search.toLowerCase())), [retailers, search]);
   const pick = async (camera: boolean) => {
     try {
-      if (camera) { const p = await ImagePicker.requestCameraPermissionsAsync(); if (!p.granted) return Alert.alert("Permission required", "Camera permission allow karein."); }
+      if (camera) { const p = await ImagePicker.requestCameraPermissionsAsync(); if (!p.granted) return Alert.alert("Permission required", "Please allow camera access to continue."); }
       const result = camera ? await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: .8 }) : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: .8 });
       if (!result.canceled && result.assets[0]) { const x = result.assets[0]; setAsset({ uri: x.uri, name: x.fileName || `invoice-${Date.now()}.jpg`, mimeType: x.mimeType || "image/jpeg" }); }
-    } catch { showToast("Invoice photo select nahi ho payi."); }
+    } catch { showToast("Unable to select the invoice photo."); }
   };
-  const chooseAttachment = () => Alert.alert("Invoice attachment", "Source select karein", [
+  const chooseAttachment = () => Alert.alert("Invoice attachment", "Choose a source", [
     { text: "Camera", onPress: () => pick(true) },
     { text: "Gallery", onPress: () => pick(false) },
     { text: "Cancel", style: "cancel" },
   ]);
   const displayedAttachment = asset?.uri || initialInvoice?.attachment || "";
   const submit = async () => {
-    if (!retailer) return showToast("Retailer select karein."); if (!invoiceNumber.trim()) return showToast("Invoice number required hai.");
-    if (!invoiceDate) return showToast("Invoice date required hai."); if (!scheme) return showToast("Scheme select karein.");
-    if (!(Number(amount) > 0)) return showToast("Amount 0 se greater hona chahiye."); if (!asset && !editing) return showToast("Invoice attachment required hai.");
+    if (!retailer) return showToast("Please select a retailer."); if (!invoiceNumber.trim()) return showToast("Invoice number is required.");
+    if (!invoiceDate) return showToast("Invoice date is required."); if (!scheme) return showToast("Please select a scheme.");
+    if (!(Number(amount) > 0)) return showToast("Amount must be greater than 0."); if (!asset && !editing) return showToast("Invoice attachment is required.");
     setSaving(true); try {
       const payload = { retailerId: retailer.id, schemeId: scheme.id, invoiceNumber: invoiceNumber.trim(), invoiceDate, amount: Number(amount) };
       if (editing && initialInvoice) await dealerInvoiceApi.update(initialInvoice.id, { ...payload, attachment: asset });
@@ -70,7 +70,7 @@ export default function DealerNewInvoiceScreen({ onBack, onCreated, invoice: ini
           <Text style={s.uploadText} numberOfLines={1}>{asset?.name || "Attachment saved"}</Text>
           <Pressable style={s.changeButton} onPress={chooseAttachment}><Text style={s.changeButtonText}>Change attachment</Text></Pressable>
         </View>
-      </View> : <Pressable style={s.upload} onPress={chooseAttachment}><Text style={s.uploadIcon}>📷</Text><Text style={s.uploadTitle}>Add invoice photo</Text><Text style={s.uploadText}>Camera ya gallery se select karein</Text></Pressable>}
+      </View> : <Pressable style={s.upload} onPress={chooseAttachment}><Text style={s.uploadIcon}>📷</Text><Text style={s.uploadTitle}>Add invoice photo</Text><Text style={s.uploadText}>Select from camera or gallery</Text></Pressable>}
       <View style={s.estimate}><View><Text style={s.estimateTitle}>ESTIMATED REWARD</Text><Text style={s.estimateText}>Final reward approval calculation par milega</Text></View><Text style={s.points}>—</Text></View>
       <Pressable style={[s.submit, saving && s.disabled]} disabled={saving} onPress={submit}>{saving ? <ActivityIndicator color="#fff" /> : <Text style={s.submitText}>{editing ? "UPDATE INVOICE" : "SUBMIT INVOICE"}</Text>}</Pressable>
     </ScrollView>

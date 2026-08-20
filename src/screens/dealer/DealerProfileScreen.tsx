@@ -77,7 +77,7 @@ export default function DealerProfileScreen({ onBack, onLogout }: { onBack: () =
 
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={colors.primary} /><Text style={styles.loadingText}>Loading profile...</Text></View>;
 
-  if (failed) return <View style={styles.center}><Text style={styles.errorIcon}>!</Text><Text style={styles.errorTitle}>Profile unavailable</Text><Text style={styles.errorText}>Dealer profile details load nahi ho paayi.</Text><Pressable onPress={() => void load()} style={styles.retry}><Text style={styles.retryText}>TRY AGAIN</Text></Pressable></View>;
+  if (failed) return <View style={styles.center}><Text style={styles.errorIcon}>!</Text><Text style={styles.errorTitle}>Profile unavailable</Text><Text style={styles.errorText}>Unable to load dealer profile details.</Text><Pressable onPress={() => void load()} style={styles.retry}><Text style={styles.retryText}>TRY AGAIN</Text></Pressable></View>;
 
   const kyc = kycLabel(profile.kycStatus);
   const customerType = profile.customerType || "Dealer";

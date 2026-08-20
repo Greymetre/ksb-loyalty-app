@@ -9,12 +9,14 @@ import { clearToken, getUser } from "../../services/storage";
 import { jakarta, styles as appStyles } from "../../styles/appStyles";
 import DealerInvoicesScreen from "./DealerInvoicesScreen";
 import DealerNewInvoiceScreen from "./DealerNewInvoiceScreen";
+import SchemeSlider from "@/components/home/SchemeSlider";
+import DealerSchemeDetailScreen from "./DealerSchemeDetailScreen";
 import { DealerInvoiceItem } from "../../services/dealerInvoiceApi";
 import DealerRetailersScreen from "./DealerRetailersScreen";
 import DealerInvoiceDetailsSheet from "./DealerInvoiceDetailsSheet";
 import DealerProfileScreen from "./DealerProfileScreen";
 
-type DealerTab = "Dashboard" | "Invoices" | "New Entry" | "Edit Invoice" | "Retailers" | "Profile";
+type DealerTab = "Dashboard" | "Invoices" | "New Entry" | "Edit Invoice" | "Scheme Detail" | "Retailers" | "Profile";
 type DealerProfile = { name?: string; owner_name?: string; shop_name?: string; customer_type_name?: string; zone?: string; zone_name?: string; custom_fields?: Record<string, unknown> };
 const emptyDashboard: DealerDashboardData = { assignedRetailers: 0, activeRetailers: 0, pendingKycRetailers: 0, totalInvoices: 0, totalInvoiceAmount: 0, approvedInvoiceAmount: 0, expectedInvoiceAmount: 0, totalRewardEarned: 0, totalExpectedReward: 0, recentInvoices: [] };
 const tabs: Array<{ label: DealerTab; icon: string }> = [
@@ -41,6 +43,7 @@ export default function DealerHomeScreen({ onLogout }: { onLogout: () => void })
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<DealerInvoiceItem | null>(null);
+  const [selectedSchemeId, setSelectedSchemeId] = useState<number | null>(null);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
 
   const loadDashboard = async (refresh = false) => {
@@ -80,6 +83,7 @@ export default function DealerHomeScreen({ onLogout }: { onLogout: () => void })
 
   if (selectedTab === "Invoices") return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}><DealerInvoicesScreen key={`invoices-${tabVisit}`} onBack={() => selectTab("Dashboard")} onNew={() => { setEditingInvoice(null); selectTab("New Entry"); }} onEdit={(invoice) => { setEditingInvoice(invoice); selectTab("Edit Invoice"); }} /><DealerTabs selected={selectedTab} onSelect={selectTab} /></View></SafeAreaView>;
   if (selectedTab === "New Entry") return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}><DealerNewInvoiceScreen key={`new-entry-${tabVisit}`} onBack={() => selectTab("Dashboard")} onCreated={() => { void loadDashboard(true); selectTab("Invoices"); }} /><DealerTabs selected={selectedTab} onSelect={selectTab} /></View></SafeAreaView>;
+  if (selectedTab === "Scheme Detail" && selectedSchemeId) return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}><DealerSchemeDetailScreen key={`scheme-${selectedSchemeId}-${tabVisit}`} schemeId={selectedSchemeId} onBack={() => { setSelectedSchemeId(null); selectTab("Dashboard"); }} /><DealerTabs selected="Dashboard" onSelect={selectTab} /></View></SafeAreaView>;
   if (selectedTab === "Edit Invoice" && editingInvoice) return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}><DealerNewInvoiceScreen key={`edit-invoice-${editingInvoice.id}-${tabVisit}`} invoice={editingInvoice} onBack={() => selectTab("Invoices")} onCreated={() => { setEditingInvoice(null); void loadDashboard(true); selectTab("Invoices"); }} /><DealerTabs selected="Invoices" onSelect={selectTab} /></View></SafeAreaView>;
   if (selectedTab === "Retailers") return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}><DealerRetailersScreen key={`retailers-${tabVisit}`} onBack={() => selectTab("Dashboard")} /><DealerTabs selected={selectedTab} onSelect={selectTab} /></View></SafeAreaView>;
   if (selectedTab === "Profile") return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}><DealerProfileScreen key={`profile-${tabVisit}`} onBack={() => selectTab("Dashboard")} onLogout={onLogout} /><DealerTabs selected={selectedTab} onSelect={selectTab} /></View></SafeAreaView>;
@@ -100,6 +104,8 @@ export default function DealerHomeScreen({ onLogout }: { onLogout: () => void })
           <Text style={local.partner}>{partner}{zone ? ` · ${zone}` : ""}</Text>
         </View>
 
+        <SchemeSlider onOpen={(schemeId) => { setSelectedSchemeId(schemeId); selectTab("Scheme Detail"); }} />
+
         <LinearGradient colors={gradients.main} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[appStyles.redeemHero, local.hero]}>
           <View style={appStyles.heroRingOuter} /><View style={appStyles.heroRingInner} />
           <Text style={appStyles.redeemEyebrow}>RETAILER REWARDS SUMMARY</Text>
@@ -108,8 +114,6 @@ export default function DealerHomeScreen({ onLogout }: { onLogout: () => void })
             <View style={local.divider} />
             <Reward label="EXPECTED REWARD" value={money(dashboard.totalExpectedReward)} meta={`Expected amount · ${money(dashboard.expectedInvoiceAmount)}`} />
           </View>}
-          <Text style={appStyles.redeemCopy}>{dashboard.totalInvoices} invoices · {money(dashboard.totalInvoiceAmount)} total value</Text>
-          <Pressable style={appStyles.redeemButton} onPress={() => selectTab("New Entry")}><Text style={appStyles.redeemButtonText}>＋ NEW INVOICE ENTRY</Text></Pressable>
         </LinearGradient>
 
         <View style={local.grid}>
@@ -120,7 +124,7 @@ export default function DealerHomeScreen({ onLogout }: { onLogout: () => void })
         </View>
 
         <View style={appStyles.walletSectionHead}><Text style={appStyles.walletSectionTitle}>Recent invoice activity</Text><Pressable onPress={() => selectTab("Invoices")}><Text style={local.link}>View all →</Text></Pressable></View>
-        {!loading && !dashboard.recentInvoices.length ? <View style={local.empty}><Text style={local.emptyIcon}>📭</Text><Text style={local.emptyTitle}>No invoice activity yet</Text><Text style={local.emptyText}>Assigned retailers ke invoices yahan dikhai denge.</Text></View> : null}
+        {!loading && !dashboard.recentInvoices.length ? <View style={local.empty}><Text style={local.emptyIcon}>📭</Text><Text style={local.emptyTitle}>No invoice activity yet</Text><Text style={local.emptyText}>Invoices from your assigned retailers will appear here.</Text></View> : null}
         {dashboard.recentInvoices.map(invoice => {
           const approved = invoice.status === "approved";
           const rejected = invoice.status === "rejected";
@@ -164,7 +168,10 @@ function DealerTabs({ selected, onSelect }: { selected: DealerTab; onSelect: (ta
 
 const local = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background }, scroll: { flexGrow: 1, paddingBottom: 124 }, partner: { fontFamily: jakarta.semiBold, color: colors.muted, fontSize: 13, marginTop: 4 },
-  hero: { minHeight: 296 }, loader: { marginVertical: 28 }, rewardRow: { flexDirection: "row", marginTop: 22, marginBottom: 17 }, reward: { flex: 1 }, divider: { width: 1, backgroundColor: "rgba(255,255,255,.28)", marginHorizontal: 15 },
+  // The invoice-count line and the New Entry button used to sit under the reward
+  // row. With those gone the card is sized by its content: the shared redeemHero
+  // minHeight is overridden to 0 and the reward row no longer needs a bottom gap.
+  hero: { minHeight: 0 }, loader: { marginVertical: 28 }, rewardRow: { flexDirection: "row", marginTop: 22, marginBottom: 0 }, reward: { flex: 1 }, divider: { width: 1, backgroundColor: "rgba(255,255,255,.28)", marginHorizontal: 15 },
   rewardLabel: { fontFamily: jakarta.bold, color: "rgba(255,255,255,.72)", fontSize: 9, letterSpacing: .8 }, rewardValue: { fontFamily: jakarta.extraBold, color: "#fff", fontSize: 24, marginTop: 7 }, rewardMeta: { fontFamily: jakarta.medium, color: "rgba(255,255,255,.75)", fontSize: 10, marginTop: 4 },
   grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 13 }, summary: { width: "48%", minHeight: 148, borderRadius: 24, padding: 18, backgroundColor: "#fff", borderWidth: 1, borderColor: "#dce7f0", shadowColor: colors.navy, shadowOpacity: .06, shadowRadius: 14, elevation: 3 },
   summaryIcon: { width: 43, height: 43, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#e8f4ff", marginBottom: 12 }, iconText: { fontSize: 21 }, summaryValue: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 24 }, summaryLabel: { fontFamily: jakarta.bold, color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 5, textTransform: "uppercase" }, link: { fontFamily: jakarta.bold, color: colors.primary, fontSize: 13 },

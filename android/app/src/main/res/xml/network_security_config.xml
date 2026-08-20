@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <base-config>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!--
+      Android versions whose system store predates Sectigo Root R46 cannot
+      otherwise build the API server's certificate path. Keep this additional
+      trust anchor scoped to the FieldKonnect API host.
+    -->
+    <domain-config>
+        <domain includeSubdomains="false">app.ksbindia.co.in</domain>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="@raw/sectigo_public_server_authentication_ca_ov_r36" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>

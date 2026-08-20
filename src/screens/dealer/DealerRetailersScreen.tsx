@@ -74,7 +74,7 @@ export default function DealerRetailersScreen({ onBack }: { onBack: () => void }
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} />}>
         <View style={s.cards}>
           {loading ? <View style={s.loading}><ActivityIndicator color={colors.primary} /><Text style={s.loadingText}>Loading retailers</Text></View> : null}
-          {!loading && !data.items.length ? <View style={s.empty}><Text style={s.emptyIcon}>🏪</Text><Text style={s.emptyTitle}>No retailers found</Text><Text style={s.emptyText}>Assigned retailers yahan dikhai denge.</Text></View> : null}
+          {!loading && !data.items.length ? <View style={s.empty}><Text style={s.emptyIcon}>🏪</Text><Text style={s.emptyTitle}>No retailers found</Text><Text style={s.emptyText}>Retailers assigned to you will appear here.</Text></View> : null}
           {data.items.map(item => <RetailerCard key={item.id} item={item} />)}
           {!loading && data.items.length < data.total ? <Pressable onPress={() => void loadMore()} disabled={loadingMore} style={s.more}>{loadingMore ? <ActivityIndicator color="#fff" /> : <Text style={s.moreText}>Load more retailers</Text>}</Pressable> : null}
         </View>

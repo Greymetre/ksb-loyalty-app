@@ -4,7 +4,7 @@ import { colors } from "../../constants/colors";
 import { DealerInvoiceItem, dealerInvoiceApi } from "../../services/dealerInvoiceApi";
 import { showToast } from "../../services/toast";
 import { jakarta } from "../../styles/appStyles";
-import InvoiceAttachmentViewer from "./InvoiceAttachmentViewer";
+import InvoiceAttachmentViewer from "@/components/InvoiceAttachmentViewer";
 
 const money = (value: number) => `₹${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(value || 0)}`;
 const inProcessBadge = { backgroundColor: "#e8f1ff" } as const;
@@ -33,7 +33,7 @@ export default function DealerInvoiceDetailsSheet({
     setLoading(true);
     dealerInvoiceApi.detail(invoiceId)
       .then(result => { if (active) setInvoice(result); })
-      .catch(() => { if (active) showToast("Invoice details load nahi ho payi."); })
+      .catch(() => { if (active) showToast("Unable to load invoice details."); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [invoiceId]);
