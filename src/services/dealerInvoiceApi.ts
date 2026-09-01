@@ -2,7 +2,7 @@ import { apiClient, apiFileUrl } from "./apiClient";
 
 export type DealerRetailer = { id: number; code: string; name: string; ownerName: string; shopName: string; mobile: string };
 export type DealerScheme = { id: number; name: string; code: string; startDate: string; endDate: string };
-export type DealerInvoiceStatus = "approved" | "pending" | "in_process" | "rejected";
+export type DealerInvoiceStatus = "approved" | "pending" | "hold" | "in_process" | "rejected";
 export type DealerInvoiceItem = {
   id: string; retailerId: number; schemeId: number | null; retailerName: string; invoiceNumber: string;
   invoiceDate: string; displayDate: string; amount: number; rewardAmount: number; expectedRewardAmount: number;
@@ -18,8 +18,9 @@ const normalizeItem = (raw: any): DealerInvoiceItem => {
   const status = String(raw?.status ?? raw?.approval_status_key ?? raw?.approval_status_label ?? "").toLowerCase();
   const rejected = Number(raw?.approval_status) === 4 || status === "rejected" || status.includes("reject");
   const approved = !rejected && (Number(raw?.approval_status) === 3 || status === "approved" || status.includes("approved ho"));
-  const inProcess = !rejected && !approved && ([1, 2].includes(Number(raw?.approval_status)) || status === "in_process" || status === "in-process" || status.includes("in process"));
-  const normalizedStatus: DealerInvoiceStatus = rejected ? "rejected" : approved ? "approved" : inProcess ? "in_process" : "pending";
+  const held = !rejected && !approved && (Number(raw?.approval_status) === 5 || status === "hold" || status.includes("hold"));
+  const inProcess = !rejected && !approved && !held && ([1, 2].includes(Number(raw?.approval_status)) || status === "in_process" || status === "in-process" || status.includes("in process"));
+  const normalizedStatus: DealerInvoiceStatus = rejected ? "rejected" : approved ? "approved" : held ? "hold" : inProcess ? "in_process" : "pending";
   return {
   id: String(raw?.id ?? ""), retailerId: n(raw?.retailer_id ?? raw?.retailerId ?? raw?.secondary_customer_id ?? raw?.secondaryCustomerId), schemeId: rawSchemeId === null || rawSchemeId === undefined || rawSchemeId === "" ? null : n(rawSchemeId),
   retailerName: String(raw?.retailer_name ?? raw?.retailerName ?? "Retailer"), invoiceNumber: String(raw?.invoice_number ?? raw?.invoiceNumber ?? ""),
@@ -29,7 +30,7 @@ const normalizeItem = (raw: any): DealerInvoiceItem => {
   invoiceDate: String(raw?.invoice_date ?? raw?.invoiceDate ?? ""), displayDate: String(raw?.display_date ?? raw?.displayDate ?? raw?.invoice_date ?? raw?.invoiceDate ?? ""),
   amount: n(raw?.amount), rewardAmount: n(raw?.reward_amount ?? raw?.rewardAmount), expectedRewardAmount: n(raw?.expected_reward_amount ?? raw?.expectedRewardAmount),
   schemeName: String(raw?.scheme_name ?? raw?.schemeName ?? ""), attachment: apiFileUrl(String(raw?.attachment_url ?? raw?.attachmentUrl ?? raw?.attachment ?? "")),
-  status: normalizedStatus, statusLabel: normalizedStatus === "approved" ? "Approved" : normalizedStatus === "rejected" ? "Rejected" : normalizedStatus === "in_process" ? "In Process" : "Pending",
+  status: normalizedStatus, statusLabel: normalizedStatus === "approved" ? "Approved" : normalizedStatus === "rejected" ? "Rejected" : normalizedStatus === "hold" ? "Hold" : normalizedStatus === "in_process" ? "In Process" : "Pending",
   canEdit: Boolean(raw?.can_edit ?? raw?.canEdit), canDelete: Boolean(raw?.can_delete ?? raw?.canDelete),
   };
 };

@@ -17,6 +17,7 @@ import LoadingScreen from "@/screens/common/LoadingScreen";
 import LoginScreen from "@/screens/auth/LoginScreen";
 import RegisterScreen from "@/screens/auth/RegisterScreen";
 import SplashScreen from "@/screens/auth/SplashScreen";
+import ForceUpdateScreen from "@/screens/common/ForceUpdateScreen";
 import HomeScreen from "@/screens/home/HomeScreen";
 import InvoicesScreen from "@/screens/home/InvoicesScreen";
 import InvoiceDetailScreen from "@/screens/home/InvoiceDetailScreen";
@@ -29,6 +30,7 @@ import SchemeScreen from "@/screens/home/SchemeScreen";
 import WalletScreen from "@/screens/home/WalletScreen";
 import DealerHomeScreen from "@/screens/dealer/DealerHomeScreen";
 import { setToastHandler, ToastPayload } from "@/services/toast";
+import { isUpdateRequired } from "@/services/appVersion";
 import { styles } from "@/styles/appStyles";
 import { SchemeInfo } from "@/types/api";
 
@@ -78,14 +80,28 @@ export default function App() {
     return () => setToastHandler(null);
   }, []);
 
+  // Checked once on launch, before anything else is reachable. The check itself
+  // never blocks: if it cannot answer, the app carries on as normal.
+  useEffect(() => {
+    let cancelled = false;
+    void isUpdateRequired().then((required) => {
+      if (required && !cancelled) setRoute("ForceUpdate");
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Once the update wall is up nothing may navigate away from it - not the splash
+  // timer finishing, not a tab press.
+  const navigate = (next: Route) => setRoute(current => (current === "ForceUpdate" ? current : next));
+
   const go = (next: Route) => {
     setPrevious(route);
-    setRoute(next);
+    navigate(next);
     // A bottom-tab press can target the current route. Incrementing this
     // visit key remounts that data screen so its API is fetched again.
     setRouteVisit((visit) => visit + 1);
   };
-  const showBottomTabs = appRoutesWithTabs.includes(route);
+  const showBottomTabs = route !== "ForceUpdate" && appRoutesWithTabs.includes(route);
 
   if (!fontsLoaded && !fontError) {
     return (
@@ -107,7 +123,8 @@ export default function App() {
         }}
       >
         <View key={`${route}:${routeVisit}`} style={showBottomTabs ? styles.appContentWithTabs : styles.appContent}>
-          {route === "Splash" && <SplashScreen onDone={setRoute} />}
+          {route === "ForceUpdate" && <ForceUpdateScreen />}
+          {route === "Splash" && <SplashScreen onDone={navigate} />}
           {route === "Login" && <LoginScreen onRegister={(nextDraft) => { setDraft(nextDraft); setRoute("Register"); }} onDone={setRoute} />}
           {route === "Register" && draft && <RegisterScreen mobile={draft.mobile} email={draft.email || ""} onDone={() => setRoute("Home")} />}
           {route === "Home" && <HomeScreen go={go} onOpenScheme={(scheme, schemes) => { setSelectedScheme(scheme); setDashboardSchemes(schemes); go("Scheme"); }} />}

@@ -30,8 +30,18 @@ const drawerTabs: Array<{ label: DealerTab; title: string; subtitle: string; ico
 ];
 const text = (value: unknown) => typeof value === "string" ? value.trim() : "";
 const money = (value: number) => `₹${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(value || 0)}`;
+// Reward points reach six figures and used to wrap onto a second line inside the
+// summary card. From a thousand up they are shown in K, one decimal.
+const compactMoney = (value: number) => {
+  const amount = value || 0;
+  if (Math.abs(amount) < 1000) return money(amount);
+  const thousands = new Intl.NumberFormat("en-IN", { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(amount / 1000);
+  return `₹${thousands.replace(/\.0$/, "")}K`;
+};
 const inProcessBadge = { backgroundColor: "#e8f1ff" } as const;
 const inProcessText = { color: "#3563aa" } as const;
+const holdBadge = { backgroundColor: "#efeaff" } as const;
+const holdText = { color: "#5b45c9" } as const;
 
 export default function DealerHomeScreen({ onLogout }: { onLogout: () => void }) {
   const [selectedTab, setSelectedTab] = useState<DealerTab>("Dashboard");
@@ -45,6 +55,8 @@ export default function DealerHomeScreen({ onLogout }: { onLogout: () => void })
   const [editingInvoice, setEditingInvoice] = useState<DealerInvoiceItem | null>(null);
   const [selectedSchemeId, setSelectedSchemeId] = useState<number | null>(null);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+  const [retailerFilter, setRetailerFilter] = useState<"all" | "pending">("all");
+  const [retailerActiveOnly, setRetailerActiveOnly] = useState(false);
 
   const loadDashboard = async (refresh = false) => {
     refresh ? setRefreshing(true) : setLoading(true);
@@ -63,6 +75,9 @@ export default function DealerHomeScreen({ onLogout }: { onLogout: () => void })
 
   const selectTab = (tab: DealerTab) => {
     const isSameTab = tab === selectedTab;
+    // Reaching Retailers from the tab bar always means the full list; only the
+    // dashboard's Pending KYC tile opens it pre-filtered.
+    if (tab === "Retailers") { setRetailerFilter("all"); setRetailerActiveOnly(false); }
     setSelectedTab(tab);
     // Invoice/New Entry screens are locally tabbed and therefore remain
     // mounted on a repeated press. A visit key guarantees their APIs reload.
@@ -85,7 +100,7 @@ export default function DealerHomeScreen({ onLogout }: { onLogout: () => void })
   if (selectedTab === "New Entry") return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}><DealerNewInvoiceScreen key={`new-entry-${tabVisit}`} onBack={() => selectTab("Dashboard")} onCreated={() => { void loadDashboard(true); selectTab("Invoices"); }} /><DealerTabs selected={selectedTab} onSelect={selectTab} /></View></SafeAreaView>;
   if (selectedTab === "Scheme Detail" && selectedSchemeId) return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}><DealerSchemeDetailScreen key={`scheme-${selectedSchemeId}-${tabVisit}`} schemeId={selectedSchemeId} onBack={() => { setSelectedSchemeId(null); selectTab("Dashboard"); }} /><DealerTabs selected="Dashboard" onSelect={selectTab} /></View></SafeAreaView>;
   if (selectedTab === "Edit Invoice" && editingInvoice) return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}><DealerNewInvoiceScreen key={`edit-invoice-${editingInvoice.id}-${tabVisit}`} invoice={editingInvoice} onBack={() => selectTab("Invoices")} onCreated={() => { setEditingInvoice(null); void loadDashboard(true); selectTab("Invoices"); }} /><DealerTabs selected="Invoices" onSelect={selectTab} /></View></SafeAreaView>;
-  if (selectedTab === "Retailers") return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}><DealerRetailersScreen key={`retailers-${tabVisit}`} onBack={() => selectTab("Dashboard")} /><DealerTabs selected={selectedTab} onSelect={selectTab} /></View></SafeAreaView>;
+  if (selectedTab === "Retailers") return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}><DealerRetailersScreen key={`retailers-${retailerFilter}-${retailerActiveOnly}-${tabVisit}`} initialFilter={retailerFilter} initialActiveOnly={retailerActiveOnly} onBack={() => selectTab("Dashboard")} /><DealerTabs selected={selectedTab} onSelect={selectTab} /></View></SafeAreaView>;
   if (selectedTab === "Profile") return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}><DealerProfileScreen key={`profile-${tabVisit}`} onBack={() => selectTab("Dashboard")} onLogout={onLogout} /><DealerTabs selected={selectedTab} onSelect={selectTab} /></View></SafeAreaView>;
 
   return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}>
@@ -110,9 +125,9 @@ export default function DealerHomeScreen({ onLogout }: { onLogout: () => void })
           <View style={appStyles.heroRingOuter} /><View style={appStyles.heroRingInner} />
           <Text style={appStyles.redeemEyebrow}>RETAILER REWARDS SUMMARY</Text>
           {loading ? <ActivityIndicator color="#fff" size="large" style={local.loader} /> : <View style={local.rewardRow}>
-            <Reward label="REWARD EARNED" value={money(dashboard.totalRewardEarned)} meta={`Approved amount · ${money(dashboard.approvedInvoiceAmount)}`} />
+            <Reward label="REWARD EARNED" value={compactMoney(dashboard.totalRewardEarned)} meta={`Approved amount · ${money(dashboard.approvedInvoiceAmount)}`} />
             <View style={local.divider} />
-            <Reward label="EXPECTED REWARD" value={money(dashboard.totalExpectedReward)} meta={`Expected amount · ${money(dashboard.expectedInvoiceAmount)}`} />
+            <Reward label="EXPECTED REWARD" value={compactMoney(dashboard.totalExpectedReward)} meta={`Expected amount · ${money(dashboard.expectedInvoiceAmount)}`} />
           </View>}
         </LinearGradient>
 
@@ -120,7 +135,7 @@ export default function DealerHomeScreen({ onLogout }: { onLogout: () => void })
           <Summary icon="🏪" value={`${dashboard.assignedRetailers}`} label="Total retailers" />
           <Summary icon="✅" value={`${dashboard.activeRetailers}`} label="Active retailers" />
           <Summary icon="📄" value={`${dashboard.totalInvoices}`} label="Invoices uploaded" />
-          <Summary icon="🪪" value={`${dashboard.pendingKycRetailers}`} label="Pending KYC retailers" />
+          <Summary icon="🪪" value={`${dashboard.pendingKycRetailers}`} label="Pending KYC retailers" onPress={() => { setRetailerFilter("pending"); setRetailerActiveOnly(true); setSelectedTab("Retailers"); setTabVisit(visit => visit + 1); }} />
         </View>
 
         <View style={appStyles.walletSectionHead}><Text style={appStyles.walletSectionTitle}>Recent invoice activity</Text><Pressable onPress={() => selectTab("Invoices")}><Text style={local.link}>View all →</Text></Pressable></View>
@@ -129,10 +144,11 @@ export default function DealerHomeScreen({ onLogout }: { onLogout: () => void })
           const approved = invoice.status === "approved";
           const rejected = invoice.status === "rejected";
           const inProcess = invoice.status === "in_process";
+          const held = invoice.status === "hold";
           return <Pressable key={invoice.id} style={local.invoice} onPress={() => setSelectedInvoiceId(invoice.id)}>
             <View style={local.invoiceIcon}><Text style={local.iconText}>📄</Text></View>
             <View style={local.invoiceInfo}><Text style={local.invoiceName} numberOfLines={1}>{invoice.retailerName}</Text><Text style={local.invoiceMeta} numberOfLines={1}>{invoice.invoiceNumber} · {invoice.displayDate}</Text></View>
-            <View style={local.invoiceRight}><Text style={local.invoiceAmount}>{money(invoice.amount)}</Text><View style={[local.badge, approved ? local.approvedBg : rejected ? local.rejectedBg : inProcess ? inProcessBadge : local.pendingBg]}><Text style={[local.badgeText, approved ? local.approved : rejected ? local.rejected : inProcess ? inProcessText : local.pending]}>{invoice.statusLabel}</Text></View></View>
+            <View style={local.invoiceRight}><Text style={local.invoiceAmount}>{money(invoice.amount)}</Text><View style={[local.badge, approved ? local.approvedBg : rejected ? local.rejectedBg : held ? holdBadge : inProcess ? inProcessBadge : local.pendingBg]}><Text style={[local.badgeText, approved ? local.approved : rejected ? local.rejected : held ? holdText : inProcess ? inProcessText : local.pending]}>{invoice.statusLabel}</Text></View></View>
           </Pressable>;
         })}
       </View>
@@ -162,8 +178,12 @@ export default function DealerHomeScreen({ onLogout }: { onLogout: () => void })
   </View></SafeAreaView>;
 }
 
-function Reward({ label, value, meta }: { label: string; value: string; meta: string }) { return <View style={local.reward}><Text style={local.rewardLabel}>{label}</Text><Text style={local.rewardValue}>{value}</Text><Text style={local.rewardMeta}>{meta}</Text></View>; }
-function Summary({ icon, value, label }: { icon: string; value: string; label: string }) { return <View style={local.summary}><View style={local.summaryIcon}><Text style={local.iconText}>{icon}</Text></View><Text style={local.summaryValue} numberOfLines={1} adjustsFontSizeToFit>{value}</Text><Text style={local.summaryLabel}>{label}</Text></View>; }
+function Reward({ label, value, meta }: { label: string; value: string; meta: string }) { return <View style={local.reward}><Text style={local.rewardLabel}>{label}</Text><Text style={local.rewardValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{value}</Text><Text style={local.rewardMeta}>{meta}</Text></View>; }
+function Summary({ icon, value, label, onPress }: { icon: string; value: string; label: string; onPress?: () => void }) {
+  const body = <><View style={local.summaryIcon}><Text style={local.iconText}>{icon}</Text></View><Text style={local.summaryValue} numberOfLines={1} adjustsFontSizeToFit>{value}</Text><Text style={local.summaryLabel}>{label}</Text></>;
+  if (!onPress) return <View style={local.summary}>{body}</View>;
+  return <Pressable onPress={onPress} style={({ pressed }) => [local.summary, pressed && local.summaryPressed]}>{body}</Pressable>;
+}
 function DealerTabs({ selected, onSelect }: { selected: DealerTab; onSelect: (tab: DealerTab) => void }) { return <View style={appStyles.homeTabs}>{tabs.map(tab => { const active=selected===tab.label; if(tab.label==="New Entry") return <Pressable key={tab.label} onPress={()=>onSelect(tab.label)} style={appStyles.redeemFab}><Text style={[appStyles.redeemFabText,active&&appStyles.redeemFabTextActive]}>{tab.icon}</Text><Text style={active?appStyles.redeemFabLabelActive:appStyles.redeemFabLabel}>{tab.label}</Text></Pressable>; return <Pressable key={tab.label} onPress={()=>onSelect(tab.label)} style={appStyles.homeTabItem}><Text style={appStyles.homeTabIcon}>{tab.icon}</Text><Text style={active?appStyles.homeTabActive:appStyles.homeTabText}>{tab.label}</Text></Pressable>;})}</View>; }
 
 const local = StyleSheet.create({
@@ -174,6 +194,7 @@ const local = StyleSheet.create({
   hero: { minHeight: 0 }, loader: { marginVertical: 28 }, rewardRow: { flexDirection: "row", marginTop: 22, marginBottom: 0 }, reward: { flex: 1 }, divider: { width: 1, backgroundColor: "rgba(255,255,255,.28)", marginHorizontal: 15 },
   rewardLabel: { fontFamily: jakarta.bold, color: "rgba(255,255,255,.72)", fontSize: 9, letterSpacing: .8 }, rewardValue: { fontFamily: jakarta.extraBold, color: "#fff", fontSize: 24, marginTop: 7 }, rewardMeta: { fontFamily: jakarta.medium, color: "rgba(255,255,255,.75)", fontSize: 10, marginTop: 4 },
   grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 13 }, summary: { width: "48%", minHeight: 148, borderRadius: 24, padding: 18, backgroundColor: "#fff", borderWidth: 1, borderColor: "#dce7f0", shadowColor: colors.navy, shadowOpacity: .06, shadowRadius: 14, elevation: 3 },
+  summaryPressed: { opacity: .75 },
   summaryIcon: { width: 43, height: 43, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#e8f4ff", marginBottom: 12 }, iconText: { fontSize: 21 }, summaryValue: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 24 }, summaryLabel: { fontFamily: jakarta.bold, color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 5, textTransform: "uppercase" }, link: { fontFamily: jakarta.bold, color: colors.primary, fontSize: 13 },
   invoice: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 20, borderWidth: 1, borderColor: "#dce7f0", padding: 15 }, invoiceIcon: { width: 46, height: 46, borderRadius: 15, backgroundColor: "#e8f4ff", alignItems: "center", justifyContent: "center" }, invoiceInfo: { flex: 1, marginLeft: 12 }, invoiceName: { fontFamily: jakarta.bold, color: colors.navy, fontSize: 14 }, invoiceMeta: { fontFamily: jakarta.medium, color: colors.muted, fontSize: 10, marginTop: 4 }, invoiceRight: { alignItems: "flex-end", marginLeft: 8 }, invoiceAmount: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 14 }, badge: { borderRadius: 99, paddingHorizontal: 9, paddingVertical: 4, marginTop: 5 }, badgeText: { fontFamily: jakarta.bold, fontSize: 9 }, approvedBg: { backgroundColor: "#e5f8ee" }, pendingBg: { backgroundColor: "#fff2da" }, rejectedBg: { backgroundColor: "#ffe9e9" }, approved: { color: "#13875a" }, pending: { color: "#a96810" }, rejected: { color: colors.danger },
   empty: { alignItems: "center", backgroundColor: "#fff", borderRadius: 24, borderWidth: 1, borderColor: "#dce7f0", padding: 28 }, emptyIcon: { fontSize: 30 }, emptyTitle: { fontFamily: jakarta.bold, color: colors.navy, fontSize: 15, marginTop: 9 }, emptyText: { fontFamily: jakarta.medium, color: colors.muted, fontSize: 11, marginTop: 5 },

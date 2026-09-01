@@ -84,15 +84,12 @@ export default function KycScreen({ go }: { go: (route: Route) => void }) {
     if (pickingKey) return;
     setPickingKey(key);
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert("Gallery permission needed", "Please allow photo access to select this KYC document.");
-        return;
-      }
+      // No permission is asked for, and none is declared. The system photo picker
+      // hands back only the one image the user chose, which is all this screen needs -
+      // and it keeps the app out of Google Play's broad photo-permission declaration.
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
         allowsMultipleSelection: false,
-        legacy: Platform.OS === "android",
         quality: 0.82
       });
       if (!result.canceled && result.assets[0]) saveFile(key, result.assets[0]);

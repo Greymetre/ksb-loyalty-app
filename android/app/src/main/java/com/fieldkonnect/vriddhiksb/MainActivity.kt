@@ -1,4 +1,4 @@
-package com.anonymous.ksbretailerapp
+package com.fieldkonnect.vriddhiksb
 
 import android.os.Build
 import android.os.Bundle

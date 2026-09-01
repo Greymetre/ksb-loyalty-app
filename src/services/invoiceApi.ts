@@ -1,10 +1,11 @@
 import { apiClient } from "@/services/apiClient";
 import { money } from "@/utils/formatters";
 
-// Loyalty invoices expose three customer-facing states: Approved after HO
-// approval, Rejected when explicitly rejected, and Pending at every other
-// workflow stage (including SS and Sales approval).
-export type InvoiceStatus = "approved" | "pending" | "rejected";
+// Loyalty invoices expose five customer-facing states: Approved after HO
+// approval, Rejected when explicitly rejected, Hold while the reviewer has parked
+// it for a correction, In Process across the SS and Sales stages, and Pending
+// before anyone has looked at it.
+export type InvoiceStatus = "approved" | "pending" | "hold" | "in_process" | "rejected";
 
 export type InvoiceListItem = {
   id: string;
@@ -107,7 +108,9 @@ const normalizeItem = (raw: any): InvoiceListItem => {
   const amount = numberOr(raw?.amount ?? raw?.invoice_amount ?? raw?.invoiceAmount, 0);
   const isRejected = Number(raw?.approval_status) === 4 || status === "rejected" || status.includes("reject");
   const isApproved = !isRejected && (Number(raw?.approval_status) === 3 || status === "approved" || status.includes("approved ho"));
-  const isPending = !isApproved && !isRejected;
+  const isHeld = !isRejected && !isApproved && (Number(raw?.approval_status) === 5 || status === "hold" || status.includes("hold"));
+  const isInProcess = !isRejected && !isApproved && !isHeld && ([1, 2].includes(Number(raw?.approval_status)) || status === "in_process" || status === "in-process" || status.includes("in process"));
+  const isPending = !isApproved && !isRejected && !isHeld && !isInProcess;
   const isRewardCredited = isApproved && (Boolean(raw?.is_reward_credited) || rewardAmount > 0);
 
   return {
@@ -122,8 +125,8 @@ const normalizeItem = (raw: any): InvoiceListItem => {
     expectedRewardAmount,
     expectedRewardDisplay: String(raw?.expected_reward_display ?? raw?.expectedRewardDisplay ?? (expectedRewardAmount ? `+${money(expectedRewardAmount)}` : "—")),
     rewardLabel: String(raw?.reward_label ?? raw?.rewardLabel ?? "Reward"),
-    status: isRejected ? "rejected" : isApproved ? "approved" : "pending",
-    statusLabel: isRejected ? "Rejected" : isApproved ? "Approved" : "Pending",
+    status: isRejected ? "rejected" : isApproved ? "approved" : isHeld ? "hold" : isInProcess ? "in_process" : "pending",
+    statusLabel: isRejected ? "Rejected" : isApproved ? "Approved" : isHeld ? "Hold" : isInProcess ? "In Process" : "Pending",
     isRewardCredited,
     isPending,
     attachment: raw?.attachment ?? null,
@@ -191,7 +194,15 @@ const normalizeDetail = (raw: any): InvoiceDetail => {
   const statusKey = String(raw?.status_key ?? raw?.statusKey ?? source?.approval_status_label ?? source?.approvalStatusLabel ?? "").toLowerCase();
   const listItem = normalizeItem({
     ...source,
-    status: statusKey === "rejected" || statusKey.includes("reject") ? "rejected" : statusKey === "approved" || statusKey.includes("approved ho") ? "approved" : "pending",
+    status: statusKey === "rejected" || statusKey.includes("reject")
+      ? "rejected"
+      : statusKey === "approved" || statusKey.includes("approved ho")
+        ? "approved"
+        : statusKey.includes("hold")
+          ? "hold"
+          : statusKey.includes("approved by") || statusKey.includes("in process") || statusKey === "in_process"
+            ? "in_process"
+            : "pending",
     is_pending: raw?.is_pending ?? raw?.isPending,
     reward_amount: source?.scheme_points ?? source?.schemePoints,
     expected_reward_amount: source?.expected_scheme_points ?? source?.expectedSchemePoints,

@@ -18,13 +18,16 @@ export default function InvoiceDetailScreen({ invoiceId, onBack }: { invoiceId: 
   if (loading) return <LoadingScreen message="Loading invoice details" />;
   if (!invoice) return <EmptyScreen title="Invoice unavailable" message="Invoice details could not be loaded." onBack={onBack} />;
 
-  const pending = invoice.status === "pending";
+  const held = invoice.status === "hold";
+  const inProcess = invoice.status === "in_process";
   const rejected = invoice.status === "rejected";
-  const statusLabel = rejected ? "Rejected" : pending ? "Pending" : "Approved";
+  const approved = invoice.status === "approved";
+  const pending = !approved && !rejected;
+  const statusLabel = rejected ? "Rejected" : approved ? "Approved" : held ? "Hold" : inProcess ? "In Process" : "Pending";
   return <Screen>
     <Header title={`Invoice #${invoice.invoiceNumber}`} onBack={onBack} />
     <View style={s.page}>
-      <View style={[s.statusCard, pending && s.pendingCard, rejected && s.rejectedCard]}>
+      <View style={[s.statusCard, pending && s.pendingCard, held && s.holdCard, inProcess && s.inProcessCard, rejected && s.rejectedCard]}>
         <Text style={s.statusTitle}>{statusLabel}</Text>
         <Text style={s.statusSub}>{rejected ? "This invoice was rejected. No reward will be credited." : pending ? `${invoice.expectedRewardDisplay} expected reward` : invoice.rewardAmount > 0 ? `${invoice.rewardDisplay} reward earned` : "Approved · No reward earned"}</Text>
       </View>
@@ -52,6 +55,8 @@ const s = StyleSheet.create({
   page: { padding: 18 },
   statusCard: { backgroundColor: "#e7f8ee", borderRadius: 16, padding: 16, marginBottom: 14 },
   pendingCard: { backgroundColor: "#fff5d9" },
+  holdCard: { backgroundColor: "#efeaff" },
+  inProcessCard: { backgroundColor: "#e8f1ff" },
   rejectedCard: { backgroundColor: "#fff0f1" },
   statusTitle: { color: "#143053", fontSize: 17, fontWeight: "900" },
   statusSub: { color: "#64748b", fontSize: 12, marginTop: 5, fontWeight: "700" },

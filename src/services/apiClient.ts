@@ -9,6 +9,9 @@ const API_BASE_URL =
     ? configuredApiBaseUrl
     : DEFAULT_API_BASE_URL;
 
+/** The public privacy policy page. Served by the API host, one level above /api. */
+export const PRIVACY_POLICY_URL = `${API_BASE_URL.replace(/\/api\/?$/, "")}/privacy-policy`;
+
 export const apiFileUrl = (path?: string | null) => {
   if (!path) return "";
   if (/^https?:\/\//i.test(path)) return path;

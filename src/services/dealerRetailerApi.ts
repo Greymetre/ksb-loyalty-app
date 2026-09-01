@@ -31,10 +31,19 @@ const numberOr = (value: unknown) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+export type DealerRetailerFilter = "all" | "pending";
+
 export const dealerRetailerApi = {
-  async list(page = 1, search = ""): Promise<DealerRetailerList> {
+  async list(page = 1, search = "", filter: DealerRetailerFilter = "all", activeOnly = false): Promise<DealerRetailerList> {
     const { data } = await apiClient.get("/dealer/retailers", {
-      params: { page, page_size: 20, search, include_metrics: true },
+      // The kyc chip does not move the summary counts - those stay on the whole set
+      // being viewed. activeOnly narrows that set to retailers who have raised an
+      // invoice, which is what the dashboard tiles count.
+      params: {
+        page, page_size: 20, search, include_metrics: true,
+        kyc: filter === "pending" ? "pending" : undefined,
+        active: activeOnly ? true : undefined,
+      },
     });
     const rows = Array.isArray(data?.data) ? data.data : [];
     return {

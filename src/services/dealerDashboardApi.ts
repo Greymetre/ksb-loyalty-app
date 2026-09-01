@@ -6,7 +6,7 @@ export type DealerRecentInvoice = {
   displayDate: string;
   retailerName: string;
   amount: number;
-  status: "approved" | "pending" | "in_process" | "rejected";
+  status: "approved" | "pending" | "hold" | "in_process" | "rejected";
   statusLabel: string;
 };
 
@@ -32,15 +32,16 @@ const normalizeInvoice = (raw: any): DealerRecentInvoice => {
   const status = String(raw?.status ?? raw?.approval_status_key ?? raw?.approval_status_label ?? "").toLowerCase();
   const rejected = Number(raw?.approval_status) === 4 || status === "rejected" || status.includes("reject");
   const approved = !rejected && (Number(raw?.approval_status) === 3 || status === "approved" || status.includes("approved ho"));
-  const inProcess = !rejected && !approved && ([1, 2].includes(Number(raw?.approval_status)) || status === "in_process" || status === "in-process" || status.includes("in process"));
+  const held = !rejected && !approved && (Number(raw?.approval_status) === 5 || status === "hold" || status.includes("hold"));
+  const inProcess = !rejected && !approved && !held && ([1, 2].includes(Number(raw?.approval_status)) || status === "in_process" || status === "in-process" || status.includes("in process"));
   return {
   id: String(raw?.id ?? raw?.invoice_number ?? ""),
   invoiceNumber: String(raw?.invoice_number ?? raw?.invoiceNumber ?? ""),
   displayDate: String(raw?.display_date ?? raw?.displayDate ?? raw?.invoice_date ?? ""),
   retailerName: String(raw?.retailer_name ?? raw?.retailerName ?? raw?.shop_name ?? raw?.shopName ?? raw?.customer_name ?? raw?.customerName ?? "Retailer"),
   amount: numberOr(raw?.amount),
-  status: rejected ? "rejected" : approved ? "approved" : inProcess ? "in_process" : "pending",
-  statusLabel: rejected ? "Rejected" : approved ? "Approved" : inProcess ? "In Process" : "Pending",
+  status: rejected ? "rejected" : approved ? "approved" : held ? "hold" : inProcess ? "in_process" : "pending",
+  statusLabel: rejected ? "Rejected" : approved ? "Approved" : held ? "Hold" : inProcess ? "In Process" : "Pending",
   };
 };
 

@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from "react-native";
+import { Keyboard, KeyboardAvoidingView, Linking, Platform, Pressable, Text, TextInput, View } from "react-native";
 import AuthScaffold from "@/components/auth/AuthScaffold";
 import { authApi } from "@/services/authApi";
+import { PRIVACY_POLICY_URL } from "@/services/apiClient";
 import { Route, SessionDraft } from "@/navigation/routes";
 import { styles } from "@/styles/appStyles";
 import { isValidIndianMobile } from "@/utils/validation";
@@ -192,7 +193,7 @@ export default function LoginScreen({
               <Text style={styles.authCancelButtonText}>CANCEL</Text>
             </Pressable>
           ) : null}
-          <Text style={styles.authTerms}>By continuing, you agree to KSB's <Text style={styles.authTermsLink}>Terms</Text> & <Text style={styles.authTermsLink}>Privacy Policy</Text></Text>
+          <Text style={styles.authTerms}>By continuing, you agree to KSB's <Text style={styles.authTermsLink}>Terms</Text> &amp; <Text style={styles.authTermsLink} onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}>Privacy Policy</Text></Text>
         </View>
       </AuthScaffold>
     </KeyboardAvoidingView>

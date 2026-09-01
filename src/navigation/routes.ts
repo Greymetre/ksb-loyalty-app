@@ -1,5 +1,6 @@
 export type Route =
   | "Splash"
+  | "ForceUpdate"
   | "Login"
   | "Email"
   | "Password"

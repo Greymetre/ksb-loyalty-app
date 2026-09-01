@@ -9,6 +9,8 @@ import InvoiceAttachmentViewer from "@/components/InvoiceAttachmentViewer";
 const money = (value: number) => `₹${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(value || 0)}`;
 const inProcessBadge = { backgroundColor: "#e8f1ff" } as const;
 const inProcessText = { color: "#3563aa" } as const;
+const holdBadge = { backgroundColor: "#efeaff" } as const;
+const holdText = { color: "#5b45c9" } as const;
 
 export default function DealerInvoiceDetailsSheet({
   invoiceId,
@@ -59,6 +61,7 @@ export default function DealerInvoiceDetailsSheet({
   const approved = invoice?.status === "approved";
   const rejected = invoice?.status === "rejected";
   const inProcess = invoice?.status === "in_process";
+  const held = invoice?.status === "hold";
   const reward = approved ? invoice?.rewardAmount || 0 : invoice?.expectedRewardAmount || 0;
   const invoiceDate = invoice?.invoiceDate ? invoice.invoiceDate.slice(0, 10) : "-";
 
@@ -71,8 +74,8 @@ export default function DealerInvoiceDetailsSheet({
         {!loading && invoice ? <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
           <View style={s.titleRow}>
             <Text style={s.title} numberOfLines={1}>{invoice.invoiceNumber || `Invoice #${invoice.id}`}</Text>
-            <View style={[s.badge, approved ? s.approvedBg : rejected ? s.rejectedBg : inProcess ? inProcessBadge : s.pendingBg]}>
-              <Text style={[s.badgeText, approved ? s.approved : rejected ? s.rejected : inProcess ? inProcessText : s.pending]}>{invoice.statusLabel}</Text>
+            <View style={[s.badge, approved ? s.approvedBg : rejected ? s.rejectedBg : held ? holdBadge : inProcess ? inProcessBadge : s.pendingBg]}>
+              <Text style={[s.badgeText, approved ? s.approved : rejected ? s.rejected : held ? holdText : inProcess ? inProcessText : s.pending]}>{invoice.statusLabel}</Text>
             </View>
           </View>
           <View style={s.rule} />

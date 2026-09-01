@@ -7,9 +7,11 @@ import { showToast } from "../../services/toast";
 import DealerInvoiceDetailsSheet from "./DealerInvoiceDetailsSheet";
 const money=(v:number)=>`₹${new Intl.NumberFormat("en-IN",{maximumFractionDigits:2}).format(v||0)}`;
 const empty:DealerInvoiceList={items:[],total:0,page:1,pageSize:20,summary:{totalInvoices:0,rewardsCredited:0,totalTurnover:0}};
-const statusOptions=[{key:"all",label:"All"},{key:"approved",label:"Approved"},{key:"pending",label:"Pending"},{key:"in_process",label:"In Process"},{key:"rejected",label:"Rejected"}];
+const statusOptions=[{key:"all",label:"All"},{key:"pending",label:"Pending"},{key:"hold",label:"Hold"},{key:"in_process",label:"In Process"},{key:"approved",label:"Approved"},{key:"rejected",label:"Rejected"}];
 const inProcessBadge={backgroundColor:"#e8f1ff"} as const;
 const inProcessText={color:"#3563aa"} as const;
+const holdBadge={backgroundColor:"#efeaff"} as const;
+const holdText={color:"#5b45c9"} as const;
 export default function DealerInvoicesScreen({onBack,onNew,onEdit}:{onBack:()=>void;onNew:()=>void;onEdit:(invoice:DealerInvoiceItem)=>void}){
  const [data,setData]=useState(empty),[search,setSearch]=useState(""),[status,setStatus]=useState("all"),[loading,setLoading]=useState(true),[refreshing,setRefreshing]=useState(false),[loadingMore,setLoadingMore]=useState(false);
  const [selectedInvoiceId,setSelectedInvoiceId]=useState<string|null>(null);
@@ -35,10 +37,11 @@ function Card({item,onOpen,onEdit,onDelete}:{item:DealerInvoiceItem;onOpen:()=>v
  const approved=item.status==="approved";
  const rejected=item.status==="rejected";
  const inProcess=item.status==="in_process";
+ const held=item.status==="hold";
  const reward=approved?item.rewardAmount:item.expectedRewardAmount;
  return <View style={s.card}>
   <Pressable onPress={onOpen}>
-   <View style={s.cardTop}><View style={s.cardTitle}><View style={s.doc}><Text>📄</Text></View><View style={s.cardInfo}><Text style={s.retailer} numberOfLines={1}>{item.retailerName}</Text><Text style={s.meta}>{item.invoiceNumber} · {item.displayDate}</Text></View></View><View style={[s.badge,approved?s.approvedBg:rejected?s.rejectedBg:inProcess?inProcessBadge:s.pendingBg]}><Text style={[s.badgeText,approved?s.approved:rejected?s.rejected:inProcess?inProcessText:s.pending]}>{item.statusLabel}</Text></View></View>
+   <View style={s.cardTop}><View style={s.cardTitle}><View style={s.doc}><Text>📄</Text></View><View style={s.cardInfo}><Text style={s.retailer} numberOfLines={1}>{item.retailerName}</Text><Text style={s.meta}>{item.invoiceNumber} · {item.displayDate}</Text></View></View><View style={[s.badge,approved?s.approvedBg:rejected?s.rejectedBg:held?holdBadge:inProcess?inProcessBadge:s.pendingBg]}><Text style={[s.badgeText,approved?s.approved:rejected?s.rejected:held?holdText:inProcess?inProcessText:s.pending]}>{item.statusLabel}</Text></View></View>
    <View style={s.rule}/><View style={s.cardBottom}><Text style={s.amount}>{money(item.amount)}</Text><Text style={[s.reward,rejected&&s.rejected]}>{rejected?"No reward":`${approved?"Earned":"Expected"} ${money(reward)}`}</Text></View>
   </Pressable>
   {(item.canEdit||item.canDelete)?<View style={s.actions}>{item.canEdit?<Pressable onPress={onEdit} style={s.edit}><Text style={s.editText}>✎  Edit</Text></Pressable>:null}{item.canDelete?<Pressable onPress={onDelete} style={s.remove}><Text style={s.removeText}>▱  Delete</Text></Pressable>:null}</View>:null}

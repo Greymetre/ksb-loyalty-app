@@ -171,9 +171,13 @@ function MonthSection({ group, onOpenInvoice }: { group: InvoiceMonthGroup; onOp
 }
 
 function InvoiceListRow({ invoice, isLast, onPress }: { invoice: InvoiceListItem; isLast: boolean; onPress: () => void }) {
-  const pending = invoice.isPending || invoice.status === "pending";
+  const held = invoice.status === "hold";
+  const inProcess = invoice.status === "in_process";
+  const approved = invoice.status === "approved";
   const rejected = invoice.status === "rejected";
-  const statusLabel = rejected ? "REJECTED" : pending ? "PENDING" : "APPROVED";
+  // Hold and In Process share the pending treatment: no reward yet, still moving.
+  const pending = !approved && !rejected;
+  const statusLabel = rejected ? "REJECTED" : approved ? "APPROVED" : held ? "HOLD" : inProcess ? "IN PROCESS" : "PENDING";
   return (
     <Pressable onPress={onPress} style={[screenStyles.invoiceRow, isLast && screenStyles.invoiceRowLast]}>
       <View style={[screenStyles.docIconBox, pending && screenStyles.docIconPending, rejected && screenStyles.docIconRejected]}>
@@ -185,13 +189,13 @@ function InvoiceListRow({ invoice, isLast, onPress }: { invoice: InvoiceListItem
       <View style={screenStyles.invoiceMain}>
         <View style={screenStyles.invoiceTitleRow}>
           <Text numberOfLines={1} style={screenStyles.invoiceNumber}>{invoice.invoiceNumberDisplay}</Text>
-          <Text style={[screenStyles.pendingBadge, !pending && screenStyles.approvedBadge, rejected && screenStyles.rejectedBadge]}>{statusLabel}</Text>
+          <Text style={[screenStyles.pendingBadge, approved && screenStyles.approvedBadge, held && screenStyles.holdBadge, inProcess && screenStyles.inProcessBadge, rejected && screenStyles.rejectedBadge]}>{statusLabel}</Text>
         </View>
         <Text numberOfLines={1} style={screenStyles.invoiceSub}>{invoice.displayDate} · {invoice.amountDisplay}</Text>
       </View>
       <View style={screenStyles.rewardBlock}>
         <Text style={[screenStyles.rewardValue, (pending || rejected) && screenStyles.pendingReward]}>{rejected ? "—" : pending ? invoice.expectedRewardDisplay : invoice.rewardDisplay}</Text>
-        <Text style={screenStyles.rewardLabel}>{rejected ? "No reward" : pending ? "Awaiting Approval" : "Reward Earned"}</Text>
+        <Text style={screenStyles.rewardLabel}>{rejected ? "No reward" : approved ? "Reward Earned" : held ? "On Hold" : inProcess ? "In Process" : "Awaiting Approval"}</Text>
       </View>
       <Text style={screenStyles.chevron}>›</Text>
     </Pressable>
@@ -406,6 +410,8 @@ const screenStyles = StyleSheet.create({
   invoiceNumber: { flexShrink: 1, fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 15 },
   pendingBadge: { borderRadius: 999, overflow: "hidden", paddingHorizontal: 9, paddingVertical: 3, backgroundColor: "#fff4d8", fontFamily: jakarta.extraBold, color: "#a97900", fontSize: 9 },
   approvedBadge: { backgroundColor: "#e5f8ee", color: "#13875a" },
+  holdBadge: { backgroundColor: "#efeaff", color: "#5b45c9" },
+  inProcessBadge: { backgroundColor: "#e8f1ff", color: "#3563aa" },
   rejectedBadge: { backgroundColor: "#ffe9e9", color: colors.danger },
   invoiceSub: { marginTop: 5, fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 11.5 },
   rewardBlock: { width: 92, alignItems: "flex-end", marginLeft: 8 },
