@@ -39,14 +39,36 @@ export const compareVersions = (left: string, right: string): number => {
 
 const isVersion = (value: unknown) => typeof value === "string" && /^\d+(\.\d+){0,3}$/.test(value.trim());
 
+/**
+ * The check runs on every screen change, so it is throttled here rather than at each
+ * call site: at most one request a minute, and concurrent callers share the one in
+ * flight. Pass force to skip the throttle - used at launch and whenever the app comes
+ * back from the background, where an immediate answer is what matters.
+ */
+const CHECK_INTERVAL_MS = 60_000;
+let lastCheckedAt = 0;
+let inFlight: Promise<boolean> | null = null;
+
 /** True when the store has a version this install must move up to. */
-export async function isUpdateRequired(): Promise<boolean> {
+export async function isUpdateRequired(options?: { force?: boolean }): Promise<boolean> {
+  if (inFlight) return inFlight;
+  if (!options?.force && Date.now() - lastCheckedAt < CHECK_INTERVAL_MS) return false;
+
+  lastCheckedAt = Date.now();
+  inFlight = (async () => {
+    try {
+      const { data } = await apiClient.get("/loyalty/app-version", { timeout: 8000 });
+      const required = Platform.OS === "ios" ? data?.data?.ios_version : data?.data?.android_version;
+      if (!isVersion(required) || !isVersion(INSTALLED_APP_VERSION)) return false;
+      return compareVersions(String(required), INSTALLED_APP_VERSION) > 0;
+    } catch {
+      return false;
+    }
+  })();
+
   try {
-    const { data } = await apiClient.get("/loyalty/app-version", { timeout: 8000 });
-    const required = Platform.OS === "ios" ? data?.data?.ios_version : data?.data?.android_version;
-    if (!isVersion(required) || !isVersion(INSTALLED_APP_VERSION)) return false;
-    return compareVersions(String(required), INSTALLED_APP_VERSION) > 0;
-  } catch {
-    return false;
+    return await inFlight;
+  } finally {
+    inFlight = null;
   }
 }

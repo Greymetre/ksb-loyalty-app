@@ -10,7 +10,10 @@ import {
   Text,
   View,
 } from "react-native";
-import * as FileSystem from "expo-file-system";
+// expo-file-system 19 (SDK 54) replaced this API. The old one still ships, at
+// /legacy - kept as is because this screen only writes a downloaded file to disk
+// and hands it to the OS, which the legacy calls already do correctly.
+import * as FileSystem from "expo-file-system/legacy";
 import { colors } from "../constants/colors";
 import { jakarta } from "../styles/appStyles";
 

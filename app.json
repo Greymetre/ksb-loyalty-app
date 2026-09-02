@@ -2,7 +2,7 @@
   "expo": {
     "name": "Vriddhi KSB",
     "slug": "ksb-retailer-app",
-    "version": "1.0",
+    "version": "2.2",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "splash": {
@@ -13,13 +13,16 @@
     ],
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.fieldkonnect.ksbretailerapp"
+      "bundleIdentifier": "com.fieldkonnect.ksbretailerapp",
+      "icon": "./assets/icon.png"
     },
     "android": {
       "package": "com.fieldkonnect.vriddhiksb",
       "permissions": [
         "CAMERA"
-      ]
+      ],
+      "versionCode": 5,
+      "icon": "./assets/icon.png"
     },
     "plugins": [
       [
@@ -28,10 +31,14 @@
           "photosPermission": "Vriddhi KSB uses photo library access so you can select GST, PAN, Aadhaar and bank proof images for KYC verification.",
           "cameraPermission": "Vriddhi KSB uses the camera to capture GST, PAN, Aadhaar and bank proof documents for KYC verification."
         }
-      ]
+      ],
+      "expo-asset",
+      "expo-font",
+      "expo-secure-store"
     ],
     "extra": {
       "apiBaseUrl": "https://app.ksbindia.co.in/FieldKonnect_API/api"
-    }
+    },
+    "icon": "./assets/icon.png"
   }
 }

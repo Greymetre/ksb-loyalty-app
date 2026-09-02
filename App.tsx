@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Keyboard, Text, View } from "react-native";
+import { AppState, Keyboard, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import {
@@ -80,15 +80,39 @@ export default function App() {
     return () => setToastHandler(null);
   }, []);
 
-  // Checked once on launch, before anything else is reachable. The check itself
-  // never blocks: if it cannot answer, the app carries on as normal.
+  // A version can be published while somebody is halfway through the app, so the wall
+  // has to be able to appear at any moment - not only at a cold start. It is checked at
+  // launch, whenever the app returns from the background, and on every screen change
+  // below. The check itself never blocks: if it cannot answer, the app carries on.
   useEffect(() => {
+    let cancelled = false;
+    const check = (force: boolean) => {
+      void isUpdateRequired({ force }).then((required) => {
+        if (required && !cancelled) setRoute("ForceUpdate");
+      });
+    };
+
+    check(true);
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") check(true);
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.remove();
+    };
+  }, []);
+
+  // Every screen change asks again. The service throttles this to one request a minute,
+  // so moving around the app does not turn into a request per tap.
+  useEffect(() => {
+    if (route === "ForceUpdate") return;
     let cancelled = false;
     void isUpdateRequired().then((required) => {
       if (required && !cancelled) setRoute("ForceUpdate");
     });
     return () => { cancelled = true; };
-  }, []);
+  }, [route]);
 
   // Once the update wall is up nothing may navigate away from it - not the splash
   // timer finishing, not a tab press.
