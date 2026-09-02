@@ -1,4 +1,8 @@
 import axios from "axios";
+import * as Application from "expo-application";
+
+// Read here rather than importing appVersion, which imports this file back.
+const INSTALLED_VERSION = Application.nativeApplicationVersion ?? "";
 import { getToken } from "@/services/storage";
 import { showToast } from "@/services/toast";
 
@@ -37,6 +41,10 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use(async (config) => {
   const token = await getToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  // The server reads this on any authenticated call and keeps the recorded version in
+  // step, so a store update shows up without waiting for the next sign-in. A server
+  // that does not read it simply ignores the header.
+  if (INSTALLED_VERSION) config.headers["X-App-Version"] = INSTALLED_VERSION;
   console.log("[API REQUEST]", {
     method: config.method?.toUpperCase(),
     url: `${config.baseURL || ""}${config.url || ""}`,

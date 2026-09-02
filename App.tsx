@@ -30,7 +30,7 @@ import SchemeScreen from "@/screens/home/SchemeScreen";
 import WalletScreen from "@/screens/home/WalletScreen";
 import DealerHomeScreen from "@/screens/dealer/DealerHomeScreen";
 import { setToastHandler, ToastPayload } from "@/services/toast";
-import { isUpdateRequired } from "@/services/appVersion";
+import { isUpdateRequired, reportInstalledVersion } from "@/services/appVersion";
 import { styles } from "@/styles/appStyles";
 import { SchemeInfo } from "@/types/api";
 
@@ -92,9 +92,16 @@ export default function App() {
       });
     };
 
+    // The CRM's Customer App Details screen should show what is installed now, not what
+    // was sent at the last sign-in, so the same two moments report it.
+    const report = () => void reportInstalledVersion();
+
     check(true);
+    report();
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") check(true);
+      if (state !== "active") return;
+      check(true);
+      report();
     });
 
     return () => {

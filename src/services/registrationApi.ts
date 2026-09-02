@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 
 import { apiClient } from "@/services/apiClient";
+import { DEVICE_NAME, INSTALLED_APP_VERSION, getDeviceId } from "./appVersion";
 import { saveToken, saveUser } from "@/services/storage";
 
 export type RegistrationPayload = {
@@ -149,9 +150,9 @@ export const registrationApi = {
       profession: isInfluencer ? payload.customerType : undefined,
       gst_number: payload.gstNumber,
       device_type: Platform.OS,
-      device_name: "KSB Retailer App",
-      unique_id: "ksb-retailer-mobile",
-      app_version: "1.0.0"
+      device_name: DEVICE_NAME || "Vriddhi KSB",
+      unique_id: (await getDeviceId()) || undefined,
+      app_version: INSTALLED_APP_VERSION || undefined
     });
     const token = data?.access_token || data?.token || data?.data?.access_token || data?.data?.token;
     if (token) {

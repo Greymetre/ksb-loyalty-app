@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 
 import { apiClient } from "@/services/apiClient";
+import { DEVICE_NAME, INSTALLED_APP_VERSION, getDeviceId } from "@/services/appVersion";
 import { saveToken, saveUser } from "@/services/storage";
 
 export type NextAction = "email_required" | "register" | "password" | "set_password";
@@ -35,13 +36,16 @@ export const authApi = {
     };
   },
   async login(mobile: string, password: string) {
+    // The version and device used to be hard-coded, so the CRM only ever saw "1.0.0"
+    // on a made-up device. These are what is actually installed and what the OS
+    // reports; a server that ignores the extra fields is unaffected.
     const { data } = await apiClient.post("/auth/customer-login", {
       mobile,
       password,
       device_type: Platform.OS,
-      device_name: "KSB Retailer App",
-      unique_id: "ksb-retailer-mobile",
-      app_version: "1.0.0"
+      device_name: DEVICE_NAME || "Vriddhi KSB",
+      unique_id: (await getDeviceId()) || undefined,
+      app_version: INSTALLED_APP_VERSION || undefined
     });
     await persistSession(data);
     return data;

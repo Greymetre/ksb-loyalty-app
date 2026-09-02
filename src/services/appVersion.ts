@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
 import * as Application from "expo-application";
+import * as Device from "expo-device";
 import { apiClient } from "@/services/apiClient";
 
 /**
@@ -16,6 +17,51 @@ import { apiClient } from "@/services/apiClient";
  */
 
 export const INSTALLED_APP_VERSION = Application.nativeApplicationVersion ?? "";
+
+/** A friendly device label for the CRM's Customer App Details screen. */
+export const DEVICE_NAME = `${Device.manufacturer ? `${Device.manufacturer} ` : ""}${Device.modelName ?? Platform.OS}`.trim();
+
+/**
+ * The device this install lives on, as the OS reports it - the Android id, or iOS's
+ * id-for-vendor. It identifies the phone rather than the person, which is what the
+ * CRM's "remove device UUID" action needs in order to free an account for a new one.
+ * Resolved once and cached; if the platform will not answer, callers simply send
+ * nothing rather than a made-up value.
+ */
+let deviceIdPromise: Promise<string | undefined> | null = null;
+
+export function getDeviceId(): Promise<string | undefined> {
+  if (!deviceIdPromise) {
+    deviceIdPromise = (async () => {
+      try {
+        if (Platform.OS === "android") return Application.getAndroidId() || undefined;
+        return (await Application.getIosIdForVendorAsync()) || undefined;
+      } catch {
+        return undefined;
+      }
+    })();
+  }
+  return deviceIdPromise;
+}
+
+/**
+ * Tells the server what is installed, so the CRM shows the current version rather than
+ * whatever was sent at the last sign-in. Fire and forget: a server that does not have
+ * this endpoint yet answers 404 and nothing about the app changes.
+ */
+export async function reportInstalledVersion(): Promise<void> {
+  if (!INSTALLED_APP_VERSION) return;
+  try {
+    await apiClient.post("/customer-session/heartbeat", {
+      app_version: INSTALLED_APP_VERSION,
+      device_name: DEVICE_NAME,
+      device_type: Platform.OS,
+      unique_id: await getDeviceId()
+    }, { timeout: 8000 });
+  } catch {
+    // An older server, or no network. Neither is worth telling the user about.
+  }
+}
 
 export const STORE_URL = Platform.select({
   android: `https://play.google.com/store/apps/details?id=${Application.applicationId ?? "com.fieldkonnect.vriddhiksb"}`,
