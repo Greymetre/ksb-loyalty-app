@@ -3,7 +3,6 @@ import { ActivityIndicator, Modal, NativeScrollEvent, NativeSyntheticEvent, Pres
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Path } from "react-native-svg";
 import { CalendarDateField, CalendarDatePicker } from "@/components/CalendarDatePicker";
 import { colors, gradients } from "@/constants/colors";
 import { Route } from "@/navigation/routes";
@@ -17,7 +16,7 @@ import {
   redemptionHistoryApi
 } from "@/services/redemptionHistoryApi";
 import { showToast } from "@/services/toast";
-import { clearToken } from "@/services/storage";
+import { signOut } from "@/services/session";
 import { jakarta } from "@/styles/appStyles";
 
 const pageSize = 20;
@@ -85,7 +84,7 @@ export default function RedemptionHistoryScreen({ go }: { go: (route: Route) => 
     } catch (error: any) {
       if (currentRequest !== requestId.current) return;
       if (error?.response?.status === 401) {
-        await clearToken();
+        await signOut();
         go("Login");
       } else {
         showToast("Unable to load redemption history", "error");
@@ -202,9 +201,6 @@ function HistoryHeader({ summary, loading, onBack }: { summary: RedemptionHistor
         <SummaryTile label="TOTAL REDEMPTIONS" value={loading ? "..." : String(summary.totalRedemptions)} />
         <SummaryTile label="TOTAL POINTS" value={loading ? "..." : summary.totalPointsDisplay} />
       </View>
-      <Svg width="120%" height={82} viewBox="0 0 390 82" preserveAspectRatio="none" style={screenStyles.headerWave}>
-        <Path d="M0 42 C72 21 151 24 224 45 C293 65 342 54 390 17 L390 82 L0 82 Z" fill="#f8fafc" />
-      </Svg>
     </View>
   );
 }
@@ -524,8 +520,8 @@ function mergeHistory(current: RedemptionHistoryResponse, next: RedemptionHistor
 }
 
 const screenStyles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#e8edf3" },
-  phone: { flex: 1, backgroundColor: "#f8fafc" },
+  safe: { flex: 1 },
+  phone: { flex: 1 },
   scroll: { flex: 1 },
   header: { height: 254, paddingHorizontal: 28, paddingTop: 44, overflow: "hidden" },
   headerButton: { position: "absolute", left: 28, top: 54, width: 46, height: 46, borderRadius: 15, borderWidth: 1.4, borderColor: "rgba(255,255,255,0.42)", backgroundColor: "rgba(255,255,255,0.16)", alignItems: "center", justifyContent: "center", zIndex: 2 },
@@ -535,7 +531,6 @@ const screenStyles = StyleSheet.create({
   summaryTile: { flex: 1, minHeight: 72, borderRadius: 16, borderWidth: 1.2, borderColor: "rgba(255,255,255,0.26)", backgroundColor: "rgba(255,255,255,0.13)", paddingHorizontal: 15, paddingVertical: 13 },
   summaryLabel: { fontFamily: jakarta.extraBold, color: "rgba(255,255,255,0.82)", fontSize: 8, letterSpacing: 2.2 },
   summaryValue: { marginTop: 6, fontFamily: jakarta.extraBold, color: colors.white, fontSize: 24, letterSpacing: 0 },
-  headerWave: { position: "absolute", left: 0, right: 0, bottom: -1 },
   content: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 10, paddingBottom: 36 },
   searchRow: { flexDirection: "row", gap: 5, alignItems: "center" },
   searchBox: { flex: 1, height: 58, borderRadius: 18, borderWidth: 1, borderColor: "#dfe6ee", backgroundColor: colors.white, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, shadowColor: colors.navy, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 8 }, elevation: 3 },
@@ -544,18 +539,18 @@ const screenStyles = StyleSheet.create({
   filterButton: { width: 58, height: 58, borderRadius: 18, borderWidth: 1, borderColor: "#dfe6ee", backgroundColor: colors.white, alignItems: "center", justifyContent: "center", shadowColor: colors.navy, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 8 }, elevation: 3 },
   filterIcon: { fontSize: 22 },
   activeFilterWrap: { marginTop: 12, flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  activeFilterPill: { height: 30, paddingHorizontal: 13, borderRadius: 999, backgroundColor: "#e8f4ff", borderWidth: 1, borderColor: "#a7d4f2", flexDirection: "row", alignItems: "center", gap: 8 },
+  activeFilterPill: { height: 30, paddingHorizontal: 13, borderRadius: 999, backgroundColor: "#faf0dd", borderWidth: 1, borderColor: "#dcb877", flexDirection: "row", alignItems: "center", gap: 8 },
   activeFilterText: { fontFamily: jakarta.extraBold, color: colors.primary, fontSize: 11 },
   clearFilter: { fontFamily: jakarta.extraBold, color: colors.primary, fontSize: 17, marginTop: -2 },
   chipRow: { gap: 8, paddingRight: 18 },
   chip: { minHeight: 34, borderRadius: 999, borderWidth: 1.2, borderColor: "#dfe6ee", backgroundColor: colors.white, paddingHorizontal: 14, alignItems: "center", justifyContent: "center" },
-  chipActive: { borderColor: "#a7d4f2", backgroundColor: "#e8f4ff" },
+  chipActive: { borderColor: "#dcb877", backgroundColor: "#faf0dd" },
   chipText: { fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 12 },
   chipTextActive: { color: colors.primary },
   summaryGrid: { marginTop: 18, flexDirection: "row", flexWrap: "wrap", gap: 10 },
   smallSummary: { width: "48.4%", minHeight: 62, borderRadius: 16, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 12 },
   smallSummaryAmber: { borderColor: "#f3d486", backgroundColor: "#fff9e8" },
-  smallSummaryGreen: { borderColor: "#a7d4f2", backgroundColor: "#e8f4ff" },
+  smallSummaryGreen: { borderColor: "#dcb877", backgroundColor: "#faf0dd" },
   smallSummaryBlue: { borderColor: "#b8daf2", backgroundColor: "#f0f8ff" },
   smallSummaryGold: { borderColor: "#efd897", backgroundColor: "#fff8df" },
   smallSummaryLabel: { fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 10, letterSpacing: 1.8 },
@@ -567,7 +562,7 @@ const screenStyles = StyleSheet.create({
   monthHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
   monthTitleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   monthTitle: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 14, letterSpacing: 2.2 },
-  countBadge: { minWidth: 30, height: 24, borderRadius: 999, overflow: "hidden", textAlign: "center", lineHeight: 24, backgroundColor: "#e1f1ff", borderWidth: 1, borderColor: "#a7d4f2", fontFamily: jakarta.extraBold, color: colors.primary, fontSize: 12 },
+  countBadge: { minWidth: 30, height: 24, borderRadius: 999, overflow: "hidden", textAlign: "center", lineHeight: 24, backgroundColor: "#e1f1ff", borderWidth: 1, borderColor: "#dcb877", fontFamily: jakarta.extraBold, color: colors.primary, fontSize: 12 },
   monthMeta: { flex: 1, textAlign: "right", fontFamily: jakarta.extraBold, color: "#9aa6b3", fontSize: 11 },
   monthPoints: { color: colors.primary },
   historyCard: { marginTop: 14, borderRadius: 22, backgroundColor: colors.white, borderWidth: 1, borderColor: "#dfe6ee", overflow: "hidden", shadowColor: colors.navy, shadowOpacity: 0.06, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 4 },
@@ -575,7 +570,7 @@ const screenStyles = StyleSheet.create({
   historyRowLast: { borderBottomWidth: 0 },
   statusIconBox: { width: 48, height: 48, borderRadius: 15, alignItems: "center", justifyContent: "center", marginRight: 13 },
   statusIconPending: { backgroundColor: "#fff4d8" },
-  statusIconApproved: { backgroundColor: "#e8f4ff" },
+  statusIconApproved: { backgroundColor: "#faf0dd" },
   statusIconRejected: { backgroundColor: "#ffe9e9" },
   statusIconHold: { backgroundColor: "#f3f5f7" },
   statusIconText: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 17 },
@@ -584,7 +579,7 @@ const screenStyles = StyleSheet.create({
   transactionNo: { flex: 1, fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 14.5 },
   statusBadge: { overflow: "hidden", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, fontFamily: jakarta.extraBold, fontSize: 8.5 },
   statusBadgePending: { backgroundColor: "#fff4d8", color: "#a97900" },
-  statusBadgeApproved: { backgroundColor: "#e8f4ff", color: colors.primary },
+  statusBadgeApproved: { backgroundColor: "#faf0dd", color: colors.primary },
   statusBadgeRejected: { backgroundColor: "#ffe9e9", color: colors.danger },
   statusBadgeHold: { backgroundColor: "#eef1f4", color: colors.muted },
   schemeText: { marginTop: 4, fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 12 },
@@ -594,7 +589,7 @@ const screenStyles = StyleSheet.create({
   pointsValue: { fontFamily: jakarta.extraBold, color: colors.primary, fontSize: 16 },
   pointsLabel: { marginTop: 3, fontFamily: jakarta.extraBold, color: "#9aa6b3", fontSize: 10 },
   emptyCard: { marginTop: 24, borderRadius: 22, backgroundColor: colors.white, borderWidth: 1, borderColor: "#dfe6ee", padding: 28, alignItems: "center" },
-  emptyIcon: { width: 54, height: 54, borderRadius: 27, overflow: "hidden", textAlign: "center", lineHeight: 54, backgroundColor: "#e8f4ff", color: colors.primary, fontFamily: jakarta.extraBold, fontSize: 28 },
+  emptyIcon: { width: 54, height: 54, borderRadius: 27, overflow: "hidden", textAlign: "center", lineHeight: 54, backgroundColor: "#faf0dd", color: colors.primary, fontFamily: jakarta.extraBold, fontSize: 28 },
   emptyTitle: { marginTop: 16, fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 17 },
   emptyText: { marginTop: 6, fontFamily: jakarta.bold, color: colors.muted, fontSize: 12 },
   sheetOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(15,30,46,0.35)" },

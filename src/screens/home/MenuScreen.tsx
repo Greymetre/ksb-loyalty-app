@@ -5,12 +5,12 @@ import ChoiceCard from "@/components/common/ChoiceCard";
 import { Header } from "@/components/Header";
 import { Screen } from "@/components/Screen";
 import { Route } from "@/navigation/routes";
-import { clearToken } from "@/services/storage";
+import { signOut } from "@/services/session";
 import { styles } from "@/styles/appStyles";
 
 export default function MenuScreen({ go, back }: { go: (route: Route) => void; back: () => void }) {
   const logout = async () => {
-    await clearToken();
+    await signOut();
     go("Login");
   };
   return (

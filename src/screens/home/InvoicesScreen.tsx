@@ -3,7 +3,6 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, Text
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Path } from "react-native-svg";
 import { CalendarDateField, CalendarDatePicker } from "@/components/CalendarDatePicker";
 import { colors, gradients } from "@/constants/colors";
 import { Route } from "@/navigation/routes";
@@ -135,9 +134,6 @@ function InvoiceHeader({ summary, loading, onBack }: { summary: InvoiceListRespo
         <SummaryTile label="TOTAL INVOICES" value={loading ? "..." : String(summary.totalInvoices)} />
         <SummaryTile label="REWARDS EARNED" value={loading ? "..." : summary.rewardsCreditedDisplay} />
       </View>
-      <Svg width="120%" height={82} viewBox="0 0 390 82" preserveAspectRatio="none" style={screenStyles.headerWave}>
-        <Path d="M0 42 C72 21 151 24 224 45 C293 65 342 54 390 17 L390 82 L0 82 Z" fill="#f8fafc" />
-      </Svg>
     </View>
   );
 }
@@ -356,8 +352,8 @@ function dateRangeLabel(fromDate: string, toDate: string) {
 }
 
 const screenStyles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#e8edf3" },
-  phone: { flex: 1, backgroundColor: "#f8fafc" },
+  safe: { flex: 1 },
+  phone: { flex: 1 },
   scroll: { flex: 1 },
   header: { height: 254, paddingHorizontal: 28, paddingTop: 44, overflow: "hidden" },
   headerButton: { position: "absolute", left: 28, top: 54, width: 46, height: 46, borderRadius: 15, borderWidth: 1.4, borderColor: "rgba(255,255,255,0.42)", backgroundColor: "rgba(255,255,255,0.16)", alignItems: "center", justifyContent: "center", zIndex: 2 },
@@ -368,7 +364,6 @@ const screenStyles = StyleSheet.create({
   summaryTile: { flex: 1, minHeight: 72, borderRadius: 16, borderWidth: 1.2, borderColor: "rgba(255,255,255,0.26)", backgroundColor: "rgba(255,255,255,0.13)", paddingHorizontal: 15, paddingVertical: 13 },
   summaryLabel: { fontFamily: jakarta.extraBold, color: "rgba(255,255,255,0.82)", fontSize: 8, letterSpacing: 2.2 },
   summaryValue: { marginTop: 6, fontFamily: jakarta.extraBold, color: colors.white, fontSize: 24, letterSpacing: 0 },
-  headerWave: { position: "absolute", left: 0, right: 0, bottom: -1 },
   content: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 10, paddingBottom: 34 },
   searchRow: { flexDirection: "row", gap: 5, alignItems: "center" },
   searchBox: { flex: 1, height: 58, borderRadius: 18, borderWidth: 1, borderColor: "#dfe6ee", backgroundColor: colors.white, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, shadowColor: colors.navy, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 8 }, elevation: 3 },
@@ -377,7 +372,7 @@ const screenStyles = StyleSheet.create({
   filterButton: { width: 58, height: 58, borderRadius: 18, borderWidth: 1, borderColor: "#dfe6ee", backgroundColor: colors.white, alignItems: "center", justifyContent: "center", shadowColor: colors.navy, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 8 }, elevation: 3 },
   filterIcon: { fontSize: 22 },
   activeFilterWrap: { marginTop: 12, flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  activeFilterPill: { height: 30, paddingHorizontal: 13, borderRadius: 999, backgroundColor: "#e8f4ff", borderWidth: 1, borderColor: "#a7d4f2", flexDirection: "row", alignItems: "center", gap: 8 },
+  activeFilterPill: { height: 30, paddingHorizontal: 13, borderRadius: 999, backgroundColor: "#faf0dd", borderWidth: 1, borderColor: "#dcb877", flexDirection: "row", alignItems: "center", gap: 8 },
   activeFilterText: { fontFamily: jakarta.extraBold, color: colors.primary, fontSize: 11 },
   clearFilter: { fontFamily: jakarta.extraBold, color: colors.primary, fontSize: 17, marginTop: -2 },
   infoBanner: { marginTop: 22, borderRadius: 16, borderWidth: 1.2, borderStyle: "dashed", borderColor: "#a7d8ef", backgroundColor: "#f4fbff", padding: 15, flexDirection: "row", gap: 13, alignItems: "center" },
@@ -390,7 +385,7 @@ const screenStyles = StyleSheet.create({
   monthHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
   monthTitleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   monthTitle: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 14, letterSpacing: 2.2 },
-  countBadge: { minWidth: 30, height: 24, borderRadius: 999, overflow: "hidden", textAlign: "center", lineHeight: 24, backgroundColor: "#e1f1ff", borderWidth: 1, borderColor: "#a7d4f2", fontFamily: jakarta.extraBold, color: colors.primary, fontSize: 12 },
+  countBadge: { minWidth: 30, height: 24, borderRadius: 999, overflow: "hidden", textAlign: "center", lineHeight: 24, backgroundColor: "#e1f1ff", borderWidth: 1, borderColor: "#dcb877", fontFamily: jakarta.extraBold, color: colors.primary, fontSize: 12 },
   monthMeta: { flex: 1, textAlign: "right", fontFamily: jakarta.extraBold, color: "#9aa6b3", fontSize: 11 },
   monthAmount: { color: colors.navy },
   monthReward: { color: colors.primary },
@@ -411,7 +406,7 @@ const screenStyles = StyleSheet.create({
   pendingBadge: { borderRadius: 999, overflow: "hidden", paddingHorizontal: 9, paddingVertical: 3, backgroundColor: "#fff4d8", fontFamily: jakarta.extraBold, color: "#a97900", fontSize: 9 },
   approvedBadge: { backgroundColor: "#e5f8ee", color: "#13875a" },
   holdBadge: { backgroundColor: "#efeaff", color: "#5b45c9" },
-  inProcessBadge: { backgroundColor: "#e8f1ff", color: "#3563aa" },
+  inProcessBadge: { backgroundColor: "#faf1de", color: "#3563aa" },
   rejectedBadge: { backgroundColor: "#ffe9e9", color: colors.danger },
   invoiceSub: { marginTop: 5, fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 11.5 },
   rewardBlock: { width: 92, alignItems: "flex-end", marginLeft: 8 },
@@ -427,7 +422,7 @@ const screenStyles = StyleSheet.create({
   sheetReset: { fontFamily: jakarta.extraBold, color: colors.primary, fontSize: 13 },
   sheetSectionTitle: { marginTop: 10, marginBottom: 9, fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 11, letterSpacing: 2.2 },
   sheetOption: { minHeight: 48, borderRadius: 14, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "transparent" },
-  sheetOptionActive: { backgroundColor: "#e8f4ff", borderColor: "#a7d4f2" },
+  sheetOptionActive: { backgroundColor: "#faf0dd", borderColor: "#dcb877" },
   sheetOptionText: { flex: 1, fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 14 },
   sheetOptionTextActive: { color: colors.primary },
   sheetTick: { fontFamily: jakarta.extraBold, color: colors.primary, fontSize: 16 },

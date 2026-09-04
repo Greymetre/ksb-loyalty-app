@@ -2,10 +2,12 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
+import VriddhiLogo from "@/components/VriddhiLogo";
 import { KsbLogo } from "../../components/KsbLogo";
 import { colors, gradients } from "../../constants/colors";
 import { DealerDashboardData, dealerDashboardApi } from "../../services/dealerDashboardApi";
-import { clearToken, getUser } from "../../services/storage";
+import { getUser } from "../../services/storage";
+import { signOut } from "../../services/session";
 import { jakarta, styles as appStyles } from "../../styles/appStyles";
 import DealerInvoicesScreen from "./DealerInvoicesScreen";
 import DealerNewInvoiceScreen from "./DealerNewInvoiceScreen";
@@ -38,7 +40,7 @@ const compactMoney = (value: number) => {
   const thousands = new Intl.NumberFormat("en-IN", { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(amount / 1000);
   return `₹${thousands.replace(/\.0$/, "")}K`;
 };
-const inProcessBadge = { backgroundColor: "#e8f1ff" } as const;
+const inProcessBadge = { backgroundColor: "#faf1de" } as const;
 const inProcessText = { color: "#3563aa" } as const;
 const holdBadge = { backgroundColor: "#efeaff" } as const;
 const holdText = { color: "#5b45c9" } as const;
@@ -94,7 +96,7 @@ export default function DealerHomeScreen({ onLogout }: { onLogout: () => void })
   const dealerName = text(profile.owner_name) || text(profile.name) || text(profile.shop_name) || "Dealer Partner";
   const zone = text(fields.zone_name) || text(fields.zone) || text(profile.zone_name) || text(profile.zone);
   const partner = text(profile.customer_type_name) || "Distributor Partner";
-  const logout = async () => { if (loggingOut) return; setLoggingOut(true); try { await clearToken(); onLogout(); } finally { setLoggingOut(false); } };
+  const logout = async () => { if (loggingOut) return; setLoggingOut(true); try { await signOut(); onLogout(); } finally { setLoggingOut(false); } };
 
   if (selectedTab === "Invoices") return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}><DealerInvoicesScreen key={`invoices-${tabVisit}`} onBack={() => selectTab("Dashboard")} onNew={() => { setEditingInvoice(null); selectTab("New Entry"); }} onEdit={(invoice) => { setEditingInvoice(invoice); selectTab("Edit Invoice"); }} /><DealerTabs selected={selectedTab} onSelect={selectTab} /></View></SafeAreaView>;
   if (selectedTab === "New Entry") return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}><DealerNewInvoiceScreen key={`new-entry-${tabVisit}`} onBack={() => selectTab("Dashboard")} onCreated={() => { void loadDashboard(true); selectTab("Invoices"); }} /><DealerTabs selected={selectedTab} onSelect={selectTab} /></View></SafeAreaView>;
@@ -104,14 +106,16 @@ export default function DealerHomeScreen({ onLogout }: { onLogout: () => void })
   if (selectedTab === "Profile") return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}><DealerProfileScreen key={`profile-${tabVisit}`} onBack={() => selectTab("Dashboard")} onLogout={onLogout} /><DealerTabs selected={selectedTab} onSelect={selectTab} /></View></SafeAreaView>;
 
   return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}>
+    {/* Above the ScrollView, so it stays put while the page moves under it. Sized to
+        the icon buttons either side of it, the same as the retailer home screen. */}
+    <View style={appStyles.homeTopBar}>
+      <Pressable style={appStyles.homeIconButton} onPress={() => setMenuOpen(true)}><Text style={appStyles.homeMenuIcon}>☰</Text></Pressable>
+      <View style={appStyles.homeBrand}><KsbLogo size={40} /><View style={appStyles.homeBrandDivider} /><VriddhiLogo height={44} /></View>
+      <Pressable style={appStyles.homeIconButton}><Text style={appStyles.bellIcon}>🔔</Text></Pressable>
+    </View>
+
     <ScrollView style={appStyles.homeScroll} contentContainerStyle={local.scroll} showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadDashboard(true)} />}>
-      <View style={appStyles.homeTopBar}>
-        <Pressable style={appStyles.homeIconButton} onPress={() => setMenuOpen(true)}><Text style={appStyles.homeMenuIcon}>☰</Text></Pressable>
-        <View style={appStyles.homeBrand}><KsbLogo size={30} /><Text style={appStyles.homeBrandText}>धनवर्षा</Text></View>
-        <Pressable style={appStyles.homeIconButton}><Text style={appStyles.bellIcon}>🔔</Text></Pressable>
-      </View>
-
       <View style={appStyles.homePage}>
         <View style={appStyles.greetingBlock}>
           <Text style={appStyles.greetingMuted}>Namaste 🙏</Text>
@@ -195,8 +199,8 @@ const local = StyleSheet.create({
   rewardLabel: { fontFamily: jakarta.bold, color: "rgba(255,255,255,.72)", fontSize: 9, letterSpacing: .8 }, rewardValue: { fontFamily: jakarta.extraBold, color: "#fff", fontSize: 24, marginTop: 7 }, rewardMeta: { fontFamily: jakarta.medium, color: "rgba(255,255,255,.75)", fontSize: 10, marginTop: 4 },
   grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 13 }, summary: { width: "48%", minHeight: 148, borderRadius: 24, padding: 18, backgroundColor: "#fff", borderWidth: 1, borderColor: "#dce7f0", shadowColor: colors.navy, shadowOpacity: .06, shadowRadius: 14, elevation: 3 },
   summaryPressed: { opacity: .75 },
-  summaryIcon: { width: 43, height: 43, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#e8f4ff", marginBottom: 12 }, iconText: { fontSize: 21 }, summaryValue: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 24 }, summaryLabel: { fontFamily: jakarta.bold, color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 5, textTransform: "uppercase" }, link: { fontFamily: jakarta.bold, color: colors.primary, fontSize: 13 },
-  invoice: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 20, borderWidth: 1, borderColor: "#dce7f0", padding: 15 }, invoiceIcon: { width: 46, height: 46, borderRadius: 15, backgroundColor: "#e8f4ff", alignItems: "center", justifyContent: "center" }, invoiceInfo: { flex: 1, marginLeft: 12 }, invoiceName: { fontFamily: jakarta.bold, color: colors.navy, fontSize: 14 }, invoiceMeta: { fontFamily: jakarta.medium, color: colors.muted, fontSize: 10, marginTop: 4 }, invoiceRight: { alignItems: "flex-end", marginLeft: 8 }, invoiceAmount: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 14 }, badge: { borderRadius: 99, paddingHorizontal: 9, paddingVertical: 4, marginTop: 5 }, badgeText: { fontFamily: jakarta.bold, fontSize: 9 }, approvedBg: { backgroundColor: "#e5f8ee" }, pendingBg: { backgroundColor: "#fff2da" }, rejectedBg: { backgroundColor: "#ffe9e9" }, approved: { color: "#13875a" }, pending: { color: "#a96810" }, rejected: { color: colors.danger },
+  summaryIcon: { width: 43, height: 43, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#faf0dd", marginBottom: 12 }, iconText: { fontSize: 21 }, summaryValue: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 24 }, summaryLabel: { fontFamily: jakarta.bold, color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 5, textTransform: "uppercase" }, link: { fontFamily: jakarta.bold, color: colors.primary, fontSize: 13 },
+  invoice: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 20, borderWidth: 1, borderColor: "#dce7f0", padding: 15 }, invoiceIcon: { width: 46, height: 46, borderRadius: 15, backgroundColor: "#faf0dd", alignItems: "center", justifyContent: "center" }, invoiceInfo: { flex: 1, marginLeft: 12 }, invoiceName: { fontFamily: jakarta.bold, color: colors.navy, fontSize: 14 }, invoiceMeta: { fontFamily: jakarta.medium, color: colors.muted, fontSize: 10, marginTop: 4 }, invoiceRight: { alignItems: "flex-end", marginLeft: 8 }, invoiceAmount: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 14 }, badge: { borderRadius: 99, paddingHorizontal: 9, paddingVertical: 4, marginTop: 5 }, badgeText: { fontFamily: jakarta.bold, fontSize: 9 }, approvedBg: { backgroundColor: "#e5f8ee" }, pendingBg: { backgroundColor: "#fff2da" }, rejectedBg: { backgroundColor: "#ffe9e9" }, approved: { color: "#13875a" }, pending: { color: "#a96810" }, rejected: { color: colors.danger },
   empty: { alignItems: "center", backgroundColor: "#fff", borderRadius: 24, borderWidth: 1, borderColor: "#dce7f0", padding: 28 }, emptyIcon: { fontSize: 30 }, emptyTitle: { fontFamily: jakarta.bold, color: colors.navy, fontSize: 15, marginTop: 9 }, emptyText: { fontFamily: jakarta.medium, color: colors.muted, fontSize: 11, marginTop: 5 },
   drawerLayer: { ...StyleSheet.absoluteFillObject, zIndex: 50 }, backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(6,22,43,.48)" }, drawer: { width: "78%", maxWidth: 330, flex: 1, backgroundColor: "#fff" }, drawerHead: { minHeight: 124, padding: 22, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, drawerTitle: { fontFamily: jakarta.extraBold, color: "#fff", fontSize: 24 }, drawerUser: { fontFamily: jakarta.medium, color: "#dce9fb", fontSize: 13, marginTop: 4 }, close: { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,.14)", alignItems: "center", justifyContent: "center" }, closeText: { color: "#fff", fontSize: 30 }, drawerBody: { flex: 1, padding: 18, justifyContent: "space-between" }, drawerMenu: { gap: 10 }, drawerItem: { minHeight: 68, borderRadius: 17, borderWidth: 1, borderColor: "#dfe8f2", backgroundColor: "#fff", flexDirection: "row", alignItems: "center", paddingHorizontal: 13 }, drawerItemIcon: { width: 42, height: 42, borderRadius: 13, backgroundColor: "#eaf4ff", alignItems: "center", justifyContent: "center" }, drawerItemEmoji: { fontSize: 20 }, drawerItemCopy: { flex: 1, marginLeft: 12 }, drawerItemTitle: { fontFamily: jakarta.bold, color: colors.navy, fontSize: 15 }, drawerItemSubtitle: { fontFamily: jakarta.medium, color: colors.muted, fontSize: 10, marginTop: 3 }, drawerChevron: { color: colors.primary, fontSize: 28, lineHeight: 30 }, logout: { height: 58, borderRadius: 16, borderWidth: 1, borderColor: "#ffd0d5", backgroundColor: "#fff4f5", flexDirection: "row", alignItems: "center", paddingHorizontal: 18 }, logoutIcon: { color: colors.danger, fontSize: 25, marginRight: 13 }, logoutText: { fontFamily: jakarta.bold, color: colors.danger, fontSize: 16, marginLeft: 12 },
 });

@@ -3,11 +3,10 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Path } from "react-native-svg";
 import EmptyScreen from "@/screens/common/EmptyScreen";
 import { colors, gradients } from "@/constants/colors";
 import { Route } from "@/navigation/routes";
-import { clearToken } from "@/services/storage";
+import { signOut } from "@/services/session";
 import { kycApi } from "@/services/kycApi";
 import { ProfileData, profileApi } from "@/services/profileApi";
 import { LocationOption, MasterOption, registrationApi } from "@/services/registrationApi";
@@ -158,7 +157,7 @@ export default function ProfileScreen({ go }: { go: (route: Route) => void }) {
   };
 
   const logout = async () => {
-    await clearToken();
+    await signOut();
     go("Login");
   };
 
@@ -186,9 +185,6 @@ export default function ProfileScreen({ go }: { go: (route: Route) => void }) {
           </View>
           <Text numberOfLines={1} style={screenStyles.profileName}>{profile.ownerName || "Retailer"}</Text>
           <Text numberOfLines={1} style={screenStyles.profileMeta}>{[profile.firmName, profile.customerType].filter(Boolean).join(" · ") || "KSB Loyalty Member"}</Text>
-          <Svg width="120%" height={82} viewBox="0 0 390 82" preserveAspectRatio="none" style={screenStyles.headerWave}>
-            <Path d="M0 42 C72 21 151 24 224 45 C293 65 342 54 390 17 L390 82 L0 82 Z" fill="#f8fafc" />
-          </Svg>
         </View>
 
         <ScrollView style={screenStyles.scroll} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={screenStyles.content}>
@@ -379,25 +375,24 @@ function locationKey(location: LocationOption, index: number) {
 }
 
 const screenStyles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#e8edf3" },
-  phone: { flex: 1, backgroundColor: "#f8fafc" },
+  safe: { flex: 1 },
+  phone: { flex: 1 },
   scroll: { flex: 1 },
-  loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: "#f8fafc" },
+  loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10 },
   loadingText: { fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 13 },
-  header: { height: 292, paddingHorizontal: 28, paddingTop: 44, overflow: "hidden", alignItems: "center" },
-  headerButton: { position: "absolute", left: 28, top: 54, width: 46, height: 46, borderRadius: 15, borderWidth: 1.4, borderColor: "rgba(255,255,255,0.42)", backgroundColor: "rgba(255,255,255,0.16)", alignItems: "center", justifyContent: "center", zIndex: 2 },
-  editButton: { left: undefined, right: 28 },
+  header: { height: 196, paddingHorizontal: 22, paddingTop: 12, paddingBottom: 16, overflow: "hidden", alignItems: "center" },
+  headerButton: { position: "absolute", left: 22, top: 14, width: 40, height: 40, borderRadius: 15, borderWidth: 1.4, borderColor: "rgba(255,255,255,0.42)", backgroundColor: "rgba(255,255,255,0.16)", alignItems: "center", justifyContent: "center", zIndex: 2 },
+  editButton: { left: undefined, right: 22 },
   headerButtonText: { fontFamily: jakarta.extraBold, color: colors.white, fontSize: 21, marginTop: -2 },
-  headerTitle: { marginTop: 20, textAlign: "center", fontFamily: jakarta.extraBold, color: colors.white, fontSize: 15, letterSpacing: 6 },
-  avatarWrap: { marginTop: 20, width: 75, height: 75, borderRadius: 41, borderWidth: 2, borderColor: "rgba(255,255,255,0.5)", backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center", zIndex: 2 },
+  headerTitle: { marginTop: 10, textAlign: "center", fontFamily: jakarta.extraBold, color: colors.white, fontSize: 13, letterSpacing: 5 },
+  avatarWrap: { marginTop: 12, width: 62, height: 62, borderRadius: 31, borderWidth: 2, borderColor: "rgba(255,255,255,0.5)", backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center", zIndex: 2 },
   avatarText: { fontFamily: jakarta.extraBold, color: colors.white, fontSize: 30 },
-  profileName: { marginTop: 8, maxWidth: 300, fontFamily: jakarta.extraBold, color: colors.white, fontSize: 22, zIndex: 2 },
-  profileMeta: { marginTop: 4, maxWidth: 310, fontFamily: jakarta.bold, color: "rgba(255,255,255,0.82)", fontSize: 12, zIndex: 2 },
-  headerWave: { position: "absolute", left: 0, right: 0, bottom: -1 },
+  profileName: { marginTop: 7, maxWidth: 300, fontFamily: jakarta.extraBold, color: colors.white, fontSize: 19, zIndex: 2 },
+  profileMeta: { marginTop: 3, maxWidth: 310, fontFamily: jakarta.bold, color: "rgba(255,255,255,0.82)", fontSize: 11.5, zIndex: 2 },
   content: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 12, paddingBottom: 34 },
   statusRow: { flexDirection: "row", gap: 12 },
   infoPill: { flex: 1, minHeight: 60, borderRadius: 16, borderWidth: 1, borderColor: "#dfe6ee", backgroundColor: colors.white, paddingHorizontal: 14, paddingVertical: 11 },
-  infoPillGreen: { borderColor: "#a7d4f2", backgroundColor: "#e8f4ff" },
+  infoPillGreen: { borderColor: "#dcb877", backgroundColor: "#faf0dd" },
   infoPillLabel: { fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 10, letterSpacing: 1.8 },
   infoPillValue: { marginTop: 4, fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 15 },
   kycCard: { marginTop: 18, borderRadius: 22, overflow: "hidden", shadowColor: colors.primary, shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 5 },
@@ -412,7 +407,7 @@ const screenStyles = StyleSheet.create({
   sectionTitle: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 18, marginBottom: 2 },
   fieldWrap: { marginTop: 14 },
   fieldLabel: { marginBottom: 8, fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 11, letterSpacing: 1.8 },
-  input: { minHeight: 48, borderRadius: 14, borderWidth: 1.2, borderColor: "#dfe6ee", backgroundColor: "#f9fbfd", paddingHorizontal: 14, paddingVertical: 0, fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 14 },
+  input: { minHeight: 48, borderRadius: 14, borderWidth: 1.2, borderColor: "#dfe6ee", backgroundColor: "#fdf9f1", paddingHorizontal: 14, paddingVertical: 0, fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 14 },
   inputReadonly: { color: colors.navy, backgroundColor: "#fbfcfd" },
   inputMultiline: { minHeight: 78, paddingTop: 12, paddingBottom: 12, textAlignVertical: "top" },
   twoCol: { flexDirection: "row", gap: 12 },
@@ -420,11 +415,11 @@ const screenStyles = StyleSheet.create({
   lookupLoading: { marginTop: 10, fontFamily: jakarta.bold, color: colors.primary, fontSize: 11 },
   lookupEmpty: { marginTop: 10, fontFamily: jakarta.bold, color: "#9aa6b3", fontSize: 11 },
   optionPanel: { marginTop: 10, flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  stateOption: { minHeight: 34, borderRadius: 999, borderWidth: 1, borderColor: "#dfe6ee", backgroundColor: "#f9fbfd", paddingHorizontal: 12, paddingVertical: 8, justifyContent: "center" },
-  stateOptionActive: { borderColor: "#a7d4f2", backgroundColor: "#e8f4ff" },
+  stateOption: { minHeight: 34, borderRadius: 999, borderWidth: 1, borderColor: "#dfe6ee", backgroundColor: "#fdf9f1", paddingHorizontal: 12, paddingVertical: 8, justifyContent: "center" },
+  stateOptionActive: { borderColor: "#dcb877", backgroundColor: "#faf0dd" },
   stateOptionText: { fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 11 },
   stateOptionTextActive: { color: colors.primary },
-  locationPanel: { marginTop: 10, borderRadius: 15, borderWidth: 1, borderColor: "#d6e8f6", backgroundColor: "#f8fbff", overflow: "hidden" },
+  locationPanel: { marginTop: 10, borderRadius: 15, borderWidth: 1, borderColor: "#d6e8f6", backgroundColor: "#fdf8ee", overflow: "hidden" },
   optionPanelTitle: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 7, fontFamily: jakarta.extraBold, color: colors.primary, fontSize: 10, letterSpacing: 1.4 },
   locationRow: { minHeight: 48, paddingHorizontal: 14, paddingVertical: 9, borderTopWidth: 1, borderTopColor: "#edf2f6" },
   locationCity: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 12.5 },

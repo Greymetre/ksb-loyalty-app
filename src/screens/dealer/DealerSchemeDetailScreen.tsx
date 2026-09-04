@@ -178,7 +178,7 @@ function Stat({ label, value, hint }: { label: string; value: string; hint: stri
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#f4f8fc" },
+  root: { flex: 1 },
   header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12 },
   back: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: "#fff" },
   backText: { fontSize: 20, color: colors.navy },
@@ -193,7 +193,7 @@ const s = StyleSheet.create({
   heroDesc: { fontSize: 12, color: colors.muted, marginTop: 8, lineHeight: 17 },
   heroDates: { fontSize: 12, color: colors.navy, marginTop: 10, fontWeight: "600" },
   tagRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 12 },
-  tag: { fontSize: 10, fontWeight: "700", color: colors.primary, backgroundColor: "#e8f4ff", borderRadius: 99, paddingHorizontal: 9, paddingVertical: 4 },
+  tag: { fontSize: 10, fontWeight: "700", color: colors.primary, backgroundColor: "#faf0dd", borderRadius: 99, paddingHorizontal: 9, paddingVertical: 4 },
   pill: { borderRadius: 99, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 4 },
   pillText: { fontWeight: "700", fontSize: 10 },
 
@@ -239,5 +239,4 @@ const s = StyleSheet.create({
   expired: { borderColor: "#e6d0d3", backgroundColor: "#fdf5f5" },
   expiredText: { color: colors.danger },
   upcoming: { borderColor: "#e4dcc0", backgroundColor: "#fffaef" },
-  upcomingText: { color: "#a96810" },
-});
+  upcomingText: { color: "#a96810" } });

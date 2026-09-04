@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, Text
 import { LinearGradient } from "expo-linear-gradient";
 import { colors, gradients } from "../../constants/colors";
 import { ProfileData, profileApi } from "../../services/profileApi";
-import { clearToken } from "../../services/storage";
+import { signOut } from "../../services/session";
 import { showToast } from "../../services/toast";
 import { jakarta } from "../../styles/appStyles";
 
@@ -69,7 +69,7 @@ export default function DealerProfileScreen({ onBack, onLogout }: { onBack: () =
       text: "Logout",
       style: "destructive",
       onPress: async () => {
-        await clearToken();
+        await signOut();
         onLogout();
       }
     }
@@ -83,18 +83,20 @@ export default function DealerProfileScreen({ onBack, onLogout }: { onBack: () =
   const customerType = profile.customerType || "Dealer";
 
   return <View style={styles.screen}>
-    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
-      <LinearGradient colors={gradients.main} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
-        <View style={styles.headerRow}>
-          <Pressable onPress={onBack} style={styles.headerButton}><Text style={styles.headerIcon}>←</Text></Pressable>
-          <Text style={styles.headerTitle}>MY PROFILE</Text>
-          <Pressable onPress={() => setEditing(value => !value)} style={styles.headerButton}><Text style={styles.editIcon}>{editing ? "×" : "✎"}</Text></Pressable>
-        </View>
-        <View style={styles.avatar}><Text style={styles.avatarText}>{initials(profile.ownerName || profile.firmName)}</Text></View>
-        <Text style={styles.name} numberOfLines={1}>{profile.ownerName || "Dealer Partner"}</Text>
-        <Text style={styles.meta} numberOfLines={1}>{[profile.firmName, customerType].filter(Boolean).join(" · ")}</Text>
-      </LinearGradient>
+    {/* Above the ScrollView, so it stays put while the form scrolls - the retailer
+        profile already behaved this way. */}
+    <LinearGradient colors={gradients.main} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+      <View style={styles.headerRow}>
+        <Pressable onPress={onBack} style={styles.headerButton}><Text style={styles.headerIcon}>←</Text></Pressable>
+        <Text style={styles.headerTitle}>MY PROFILE</Text>
+        <Pressable onPress={() => setEditing(value => !value)} style={styles.headerButton}><Text style={styles.editIcon}>{editing ? "×" : "✎"}</Text></Pressable>
+      </View>
+      <View style={styles.avatar}><Text style={styles.avatarText}>{initials(profile.ownerName || profile.firmName)}</Text></View>
+      <Text style={styles.name} numberOfLines={1}>{profile.ownerName || "Dealer Partner"}</Text>
+      <Text style={styles.meta} numberOfLines={1}>{[profile.firmName, customerType].filter(Boolean).join(" · ")}</Text>
+    </LinearGradient>
 
+    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
       <View style={styles.body}>
         <View style={styles.infoRow}>
           <InfoCard label="MOBILE" value={profile.mobile || "-"} />
@@ -157,16 +159,16 @@ function kycLabel(value: string): { label: string; tone: "success" | "warning" |
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { paddingBottom: 128 },
-  hero: { minHeight: 330, paddingHorizontal: 20, paddingTop: 20, alignItems: "center" },
+  hero: { height: 196, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16, alignItems: "center" },
   headerRow: { width: "100%", flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   headerButton: { width: 48, height: 48, borderRadius: 15, borderWidth: 1, borderColor: "rgba(255,255,255,.35)", backgroundColor: "rgba(255,255,255,.12)", alignItems: "center", justifyContent: "center" },
   headerIcon: { color: "#fff", fontSize: 31, lineHeight: 34 },
   editIcon: { color: "#fff", fontSize: 27, lineHeight: 30 },
   headerTitle: { fontFamily: jakarta.extraBold, color: "#fff", fontSize: 20, letterSpacing: 2 },
-  avatar: { width: 92, height: 92, borderRadius: 46, borderWidth: 2, borderColor: "rgba(255,255,255,.58)", backgroundColor: "rgba(255,255,255,.16)", alignItems: "center", justifyContent: "center", marginTop: 22 },
+  avatar: { width: 62, height: 62, borderRadius: 31, borderWidth: 2, borderColor: "rgba(255,255,255,.58)", backgroundColor: "rgba(255,255,255,.16)", alignItems: "center", justifyContent: "center", marginTop: 12 },
   avatarText: { fontFamily: jakarta.extraBold, color: "#fff", fontSize: 30 },
-  name: { fontFamily: jakarta.extraBold, color: "#fff", fontSize: 22, marginTop: 14, paddingHorizontal: 12 },
-  meta: { fontFamily: jakarta.semiBold, color: "rgba(255,255,255,.8)", fontSize: 13, marginTop: 7, paddingHorizontal: 12 },
+  name: { fontFamily: jakarta.extraBold, color: "#fff", fontSize: 19, marginTop: 7, paddingHorizontal: 12 },
+  meta: { fontFamily: jakarta.semiBold, color: "rgba(255,255,255,.8)", fontSize: 11.5, marginTop: 3, paddingHorizontal: 12 },
   body: { paddingHorizontal: 20, marginTop: 22, gap: 16 },
   infoRow: { flexDirection: "row", justifyContent: "space-between" },
   infoCard: { width: "48%", minHeight: 82, borderRadius: 18, backgroundColor: "#fff", borderWidth: 1, borderColor: "#dbe5ef", paddingHorizontal: 16, paddingVertical: 14 },

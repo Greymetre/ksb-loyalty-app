@@ -3,6 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
+import VriddhiLogo from "@/components/VriddhiLogo";
 import { KsbLogo } from "@/components/KsbLogo";
 import { StatusBadge } from "@/components/StatusBadge";
 import EmptyScreen from "@/screens/common/EmptyScreen";
@@ -86,21 +87,25 @@ export default function HomeScreen({ go, onOpenScheme }: { go: (route: Route) =>
   const boosterNextMeta = getNextThresholdMessage(boosterTierProgress);
   return (
     <SafeAreaView style={styles.homeSafe}>
-      <ScrollView style={styles.homeScroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.homeScrollContent}>
-        <View style={styles.homeTopBar}>
-          <Pressable onPress={() => go("Menu")} style={styles.homeIconButton}>
-            <Text style={styles.homeMenuIcon}>☰</Text>
-          </Pressable>
-          <View style={styles.homeBrand}>
-            <KsbLogo size={30} />
-            <Text style={styles.homeBrandText}>धनवर्षा</Text>
-          </View>
-          <Pressable onPress={openNotifications} style={styles.homeIconButton}>
-            <Text style={styles.bellIcon}>🔔</Text>
-            {hasUnreadSchemes ? <View style={localStyles.notificationDot} /> : null}
-          </Pressable>
+      {/* Outside the ScrollView, so the brand and the two controls stay put while the
+          page moves under them. Sized to the icon buttons either side of it. */}
+      <View style={styles.homeTopBar}>
+        <Pressable onPress={() => go("Menu")} style={styles.homeIconButton}>
+          <Text style={styles.homeMenuIcon}>☰</Text>
+        </Pressable>
+        {/* KSB first, then Vriddhi - the order the pre-login screens use. */}
+        <View style={styles.homeBrand}>
+          <KsbLogo size={40} />
+          <View style={styles.homeBrandDivider} />
+          <VriddhiLogo height={44} />
         </View>
+        <Pressable onPress={openNotifications} style={styles.homeIconButton}>
+          <Text style={styles.bellIcon}>🔔</Text>
+          {hasUnreadSchemes ? <View style={localStyles.notificationDot} /> : null}
+        </Pressable>
+      </View>
 
+      <ScrollView style={styles.homeScroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.homeScrollContent}>
         <View style={styles.homePage}>
           <View style={styles.greetingBlock}>
             <Text style={styles.greetingMuted}>Namaste 🙏</Text>

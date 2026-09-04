@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Path } from "react-native-svg";
 import EmptyScreen from "@/screens/common/EmptyScreen";
 import { colors, gradients } from "@/constants/colors";
 import { Route } from "@/navigation/routes";
 import { KycDetails, KycDocKey, KycDocument, KycFile, kycApi } from "@/services/kycApi";
+import InvoiceAttachmentViewer from "@/components/InvoiceAttachmentViewer";
 import { showToast } from "@/services/toast";
 import { jakarta } from "@/styles/appStyles";
 
@@ -33,6 +33,8 @@ export default function KycScreen({ go }: { go: (route: Route) => void }) {
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
   const [pickingKey, setPickingKey] = useState<KycDocKey | null>(null);
+  // The document being looked at, shown in the app's own viewer.
+  const [previewUri, setPreviewUri] = useState<string | null>(null);
 
   useEffect(() => {
     kycApi.get()
@@ -162,9 +164,6 @@ export default function KycScreen({ go }: { go: (route: Route) => void }) {
           <Text style={screenStyles.headerTitle}>KYC DETAILS</Text>
           <Text style={screenStyles.headerBig}>Verify documents</Text>
           <Text style={screenStyles.headerSub}>Update details and attachments for GST, PAN, Aadhaar and bank proof</Text>
-          <Svg width="120%" height={82} viewBox="0 0 390 82" preserveAspectRatio="none" style={screenStyles.headerWave}>
-            <Path d="M0 42 C72 21 151 24 224 45 C293 65 342 54 390 17 L390 82 L0 82 Z" fill="#f8fafc" />
-          </Svg>
         </View>
 
         <ScrollView style={screenStyles.scroll} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={screenStyles.content}>
@@ -206,6 +205,7 @@ export default function KycScreen({ go }: { go: (route: Route) => void }) {
           <Section title="Attachments">
             {kyc.documents.map((doc) => (
               <AttachmentCard
+                onPreview={setPreviewUri}
                 key={doc.key}
                 doc={doc}
                 selectedFile={files[doc.key]}
@@ -223,6 +223,7 @@ export default function KycScreen({ go }: { go: (route: Route) => void }) {
           </Pressable>
         </ScrollView>
       </View>
+      <InvoiceAttachmentViewer uri={previewUri} onClose={() => setPreviewUri(null)} />
     </SafeAreaView>
   );
 }
@@ -277,21 +278,25 @@ function AttachmentCard({
   selectedFile,
   picking,
   onCamera,
-  onGallery
+  onGallery,
+  onPreview
 }: {
   doc: KycDocument;
   selectedFile?: KycFile;
   picking?: boolean;
   onCamera: () => void;
   onGallery: () => void;
+  onPreview: (uri: string) => void;
 }) {
   const previewUri = selectedFile?.uri || doc.attachmentUrl;
+  // Opened in the app's own viewer. Handing the URL to the browser took the person out
+  // of the app to look at their own document, and left them to find their way back.
   const openAttachment = () => {
     if (!previewUri) {
       showToast("No attachment available", "info");
       return;
     }
-    Linking.openURL(previewUri).catch(() => showToast("Unable to open attachment", "error"));
+    onPreview(previewUri);
   };
 
   return (
@@ -331,10 +336,10 @@ function AttachmentCard({
 }
 
 const screenStyles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#e8edf3" },
-  phone: { flex: 1, backgroundColor: "#f8fafc" },
+  safe: { flex: 1 },
+  phone: { flex: 1 },
   scroll: { flex: 1 },
-  loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: "#f8fafc" },
+  loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10 },
   loadingText: { fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 13 },
   header: { height: 238, paddingHorizontal: 28, paddingTop: 44, overflow: "hidden" },
   headerButton: { position: "absolute", left: 28, top: 54, width: 46, height: 46, borderRadius: 15, borderWidth: 1.4, borderColor: "rgba(255,255,255,0.42)", backgroundColor: "rgba(255,255,255,0.16)", alignItems: "center", justifyContent: "center", zIndex: 2 },
@@ -342,9 +347,8 @@ const screenStyles = StyleSheet.create({
   headerTitle: { marginTop: 26, textAlign: "center", fontFamily: jakarta.extraBold, color: colors.white, fontSize: 15, letterSpacing: 6 },
   headerBig: { marginTop: 34, fontFamily: jakarta.extraBold, color: colors.white, fontSize: 30 },
   headerSub: { marginTop: 7, maxWidth: 310, fontFamily: jakarta.bold, color: "rgba(255,255,255,0.82)", fontSize: 13, lineHeight: 19 },
-  headerWave: { position: "absolute", left: 0, right: 0, bottom: -1 },
   content: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 12, paddingBottom: 34 },
-  summaryCard: { marginBottom: 16, borderRadius: 22, borderWidth: 1, borderColor: "#bddbf2", backgroundColor: "#e8f4ff", padding: 18, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  summaryCard: { marginBottom: 16, borderRadius: 22, borderWidth: 1, borderColor: "#e2c58c", backgroundColor: "#faf0dd", padding: 18, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   summaryLabel: { fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 10, letterSpacing: 2.1 },
   summaryStatus: { marginTop: 7, fontFamily: jakarta.extraBold, color: colors.primary, fontSize: 25 },
   summaryStats: { flexDirection: "row", gap: 10 },
@@ -353,7 +357,7 @@ const screenStyles = StyleSheet.create({
   summaryCaption: { marginTop: 2, fontFamily: jakarta.bold, color: colors.muted, fontSize: 9 },
   statusGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   docStatus: { width: "48.4%", minHeight: 66, borderRadius: 16, borderWidth: 1, borderColor: "#f3d486", backgroundColor: "#fff9e8", padding: 13 },
-  docApproved: { borderColor: "#a7d4f2", backgroundColor: "#e8f4ff" },
+  docApproved: { borderColor: "#dcb877", backgroundColor: "#faf0dd" },
   docRejected: { borderColor: "#ffc3c3", backgroundColor: "#fff4f2" },
   docStatusTitle: { fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 10, letterSpacing: 1.6 },
   docStatusText: { marginTop: 7, fontFamily: jakarta.extraBold, color: "#a97900", fontSize: 15 },
@@ -363,7 +367,7 @@ const screenStyles = StyleSheet.create({
   sectionTitle: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 18, marginBottom: 2 },
   fieldWrap: { marginTop: 14 },
   fieldLabel: { marginBottom: 8, fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 11, letterSpacing: 1.8 },
-  input: { minHeight: 48, borderRadius: 14, borderWidth: 1.2, borderColor: "#dfe6ee", backgroundColor: "#f9fbfd", paddingHorizontal: 14, paddingVertical: 0, fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 14 },
+  input: { minHeight: 48, borderRadius: 14, borderWidth: 1.2, borderColor: "#dfe6ee", backgroundColor: "#fdf9f1", paddingHorizontal: 14, paddingVertical: 0, fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 14 },
   attachmentCard: { marginTop: 14, borderRadius: 17, borderWidth: 1.2, borderColor: "#9be8ba", backgroundColor: colors.white, padding: 14 },
   attachmentTop: { flexDirection: "row", alignItems: "flex-start", gap: 13 },
   previewBox: { width: 92, height: 82, borderRadius: 13, overflow: "hidden", borderWidth: 1, borderColor: "#dfe6ee", backgroundColor: "#f4f7fa" },
