@@ -2,17 +2,23 @@ import React, { useEffect, useState } from "react";
 import { AppState, Keyboard, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
-import {
-  PlusJakartaSans_400Regular,
-  PlusJakartaSans_500Medium,
-  PlusJakartaSans_600SemiBold,
-  PlusJakartaSans_700Bold,
-  PlusJakartaSans_800ExtraBold
-} from "@expo-google-fonts/plus-jakarta-sans";
+import { PlusJakartaSans_400Regular } from "@expo-google-fonts/plus-jakarta-sans/400Regular";
+import { PlusJakartaSans_500Medium } from "@expo-google-fonts/plus-jakarta-sans/500Medium";
+import { PlusJakartaSans_600SemiBold } from "@expo-google-fonts/plus-jakarta-sans/600SemiBold";
+import { PlusJakartaSans_700Bold } from "@expo-google-fonts/plus-jakarta-sans/700Bold";
+import { PlusJakartaSans_800ExtraBold } from "@expo-google-fonts/plus-jakarta-sans/800ExtraBold";
+// Imported one weight at a time. The package roots re-export every weight and italic,
+// and Metro then ships all forty-odd files whether or not anything uses them.
+import { Montserrat_400Regular } from "@expo-google-fonts/montserrat/400Regular";
+import { Montserrat_500Medium } from "@expo-google-fonts/montserrat/500Medium";
+import { Montserrat_600SemiBold } from "@expo-google-fonts/montserrat/600SemiBold";
+import { PlayfairDisplay_500Medium } from "@expo-google-fonts/playfair-display/500Medium";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import AppBackdrop from "@/components/AppBackdrop";
 import Toast from "@/components/common/Toast";
 import HomeBottomTabs from "@/components/home/HomeBottomTabs";
 import { Route, SessionDraft } from "@/navigation/routes";
+import { resetSessionExpiry, setSessionExpiredHandler } from "@/services/session";
 import LoadingScreen from "@/screens/common/LoadingScreen";
 import LoginScreen from "@/screens/auth/LoginScreen";
 import RegisterScreen from "@/screens/auth/RegisterScreen";
@@ -29,7 +35,7 @@ import RedemptionScreen from "@/screens/home/RedemptionScreen";
 import SchemeScreen from "@/screens/home/SchemeScreen";
 import WalletScreen from "@/screens/home/WalletScreen";
 import DealerHomeScreen from "@/screens/dealer/DealerHomeScreen";
-import { setToastHandler, ToastPayload } from "@/services/toast";
+import { setToastHandler, showToast, ToastPayload } from "@/services/toast";
 import { isUpdateRequired, reportInstalledVersion } from "@/services/appVersion";
 import { styles } from "@/styles/appStyles";
 import { SchemeInfo } from "@/types/api";
@@ -39,6 +45,9 @@ textDefaults.defaultProps = {
   ...(textDefaults.defaultProps || {}),
   allowFontScaling: false
 };
+
+/** The screens that show the artwork at full strength - the design has it that way. */
+const authRoutes: Route[] = ["Login", "Register"];
 
 const appRoutesWithTabs: Route[] = [
   "Home",
@@ -61,7 +70,12 @@ export default function App() {
     PlusJakartaSans_500Medium,
     PlusJakartaSans_600SemiBold,
     PlusJakartaSans_700Bold,
-    PlusJakartaSans_800ExtraBold
+    PlusJakartaSans_800ExtraBold,
+    // The sign-in screens are set in Montserrat, with Playfair Display for their heading.
+    Montserrat_400Regular,
+    Montserrat_500Medium,
+    Montserrat_600SemiBold,
+    PlayfairDisplay_500Medium
   });
   const [route, setRoute] = useState<Route>("Splash");
   const [routeVisit, setRouteVisit] = useState(0);
@@ -78,6 +92,18 @@ export default function App() {
       setTimeout(() => setToast(null), 3400);
     });
     return () => setToastHandler(null);
+  }, []);
+
+  // The token can stop working while the app is open - a force logout or a device reset
+  // from the CRM. The API client has already cleared the stored session by the time this
+  // runs; all that is left is to put the person on the login screen and say why, instead
+  // of leaving them on a screen where nothing loads. The update wall still outranks it.
+  useEffect(() => {
+    setSessionExpiredHandler((reason) => {
+      showToast(reason, "error");
+      setRoute((current) => (current === "ForceUpdate" ? current : "Login"));
+    });
+    return () => setSessionExpiredHandler(null);
   }, []);
 
   // A version can be published while somebody is halfway through the app, so the wall
@@ -153,6 +179,11 @@ export default function App() {
           return false;
         }}
       >
+        {/* One backdrop for the whole app. Every screen root is transparent, so the same
+            scene carries from the sign-in screens through to everything behind them -
+            at full strength while signing in, and as a wash once inside, where the
+            content on top has to stay the thing being read. */}
+        {route !== "Splash" ? <AppBackdrop faded={!authRoutes.includes(route)} /> : null}
         <View key={`${route}:${routeVisit}`} style={showBottomTabs ? styles.appContentWithTabs : styles.appContent}>
           {route === "ForceUpdate" && <ForceUpdateScreen />}
           {route === "Splash" && <SplashScreen onDone={navigate} />}

@@ -4,6 +4,7 @@ import * as Application from "expo-application";
 // Read here rather than importing appVersion, which imports this file back.
 const INSTALLED_VERSION = Application.nativeApplicationVersion ?? "";
 import { getToken } from "@/services/storage";
+import { expireSession } from "@/services/session";
 import { showToast } from "@/services/toast";
 
 const DEFAULT_API_BASE_URL = "https://app.ksbindia.co.in/FieldKonnect_API/api";
@@ -81,6 +82,16 @@ apiClient.interceptors.response.use(
     } else {
       console.log("[API ERROR]", error);
     }
+
+    // The token can be revoked while the app is open - somebody force-logs the customer
+    // out from the CRM, or resets their device. Sitting on the screen showing
+    // "Unauthenticated." leaves them stuck: nothing loads and nothing tells them why.
+    // Signing in again is the only way forward, so take them there.
+    if (isSessionExpired(error)) {
+      expireSession();
+      return Promise.reject(error);
+    }
+
     showToast(normalizeApiError(error), "error");
     return Promise.reject(error);
   }
@@ -94,4 +105,33 @@ export const normalizeApiError = (error: unknown) => {
   }
   if (error instanceof Error) return error.message;
   return "Something went wrong";
+};
+
+/**
+ * A dead session, as opposed to any other failure. The API answers 401, and older
+ * routes answer 200-shaped errors carrying Laravel's "Unauthenticated." - both mean
+ * the token is gone.
+ *
+ * Signing in is excluded: a rejected login is a wrong password, not an expired
+ * session, and bouncing the user off the login screen they are already on would only
+ * hide the message telling them what went wrong. So is signing out, which is already
+ * on its way to the login screen and should not also be told its session expired.
+ */
+const isSessionExpired = (error: unknown) => {
+  if (!axios.isAxiosError(error)) return false;
+
+  // No session to expire. The splash reports the installed version before anyone has
+  // signed in, and that call is refused - which is expected, not a sign-out. Treating it
+  // as one signed the user out of a session they never had and threw them at the login
+  // screen a few frames into the splash.
+  const headers: any = error.config?.headers;
+  const sentToken = headers?.Authorization ?? headers?.authorization ?? headers?.get?.("Authorization");
+  if (!sentToken) return false;
+
+  const url = String(error.config?.url || "");
+  if (/\/auth\//i.test(url) || /register|signup|logout/i.test(url)) return false;
+  if (error.response?.status === 401) return true;
+  const data: any = error.response?.data;
+  const message = typeof data === "string" ? data : String(data?.message ?? data?.error ?? "");
+  return /unauthenticated|unauthorized|token .*(expired|invalid)/i.test(message);
 };

@@ -2,6 +2,7 @@ import { Platform } from "react-native";
 import * as Application from "expo-application";
 import * as Device from "expo-device";
 import { apiClient } from "@/services/apiClient";
+import { getToken } from "@/services/storage";
 
 /**
  * Force update.
@@ -51,6 +52,8 @@ export function getDeviceId(): Promise<string | undefined> {
  */
 export async function reportInstalledVersion(): Promise<void> {
   if (!INSTALLED_APP_VERSION) return;
+  // Nothing to report against while signed out, and the call would only be refused.
+  if (!(await getToken())) return;
   try {
     await apiClient.post("/customer-session/heartbeat", {
       app_version: INSTALLED_APP_VERSION,
