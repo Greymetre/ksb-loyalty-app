@@ -7,10 +7,38 @@ export type DealerInvoiceItem = {
   id: string; retailerId: number; schemeId: number | null; retailerName: string; invoiceNumber: string;
   invoiceDate: string; displayDate: string; amount: number; rewardAmount: number; expectedRewardAmount: number;
   status: DealerInvoiceStatus; statusLabel: string; canEdit: boolean; canDelete: boolean;
-  ownerName: string; shopName: string; retailerCode: string; mobile: string; schemeName: string; attachment: string;
+  ownerName: string; shopName: string; retailerCode: string; mobile: string; schemeName: string;
+  /** First file, kept for older screens; the full set is in `attachments`. */
+  attachment: string;
+  attachments: DealerInvoiceAttachment[];
 };
+export type DealerInvoiceAttachment = { id: number; url: string; fileName: string; mimeType: string; fileSize: number };
 export type DealerInvoiceList = { items: DealerInvoiceItem[]; total: number; page: number; pageSize: number; summary: { totalInvoices: number; rewardsCredited: number; totalTurnover: number } };
-export type UploadAsset = { uri: string; name?: string | null; mimeType?: string | null };
+export type UploadAsset = { uri: string; name?: string | null; mimeType?: string | null; type?: string | null };
+
+/** A server from before the multi-attachment release only sends `attachment`; fall back
+ *  to it so the screen still shows the one file it has. */
+const normalizeAttachments = (raw: any): DealerInvoiceAttachment[] => {
+  const rows = Array.isArray(raw?.attachments) ? raw.attachments : [];
+  const mapped = rows
+    .map((file: any): DealerInvoiceAttachment => ({
+      id: Number(file?.id) || 0,
+      url: apiFileUrl(String(file?.url ?? file?.file_path ?? file?.filePath ?? "")),
+      fileName: String(file?.file_name ?? file?.fileName ?? ""),
+      mimeType: String(file?.mime_type ?? file?.mimeType ?? ""),
+      fileSize: Number(file?.file_size ?? file?.fileSize) || 0,
+    }))
+    .filter((file: DealerInvoiceAttachment) => !!file.url);
+  if (mapped.length > 0) return mapped;
+  const legacy = apiFileUrl(String(raw?.attachment_url ?? raw?.attachmentUrl ?? raw?.attachment ?? ""));
+  return legacy ? [{ id: 0, url: legacy, fileName: "", mimeType: "", fileSize: 0 }] : [];
+};
+
+const formFile = (file: UploadAsset, index: number) => ({
+  uri: file.uri,
+  name: file.name || `invoice-${Date.now()}-${index}.jpg`,
+  type: file.mimeType || file.type || "image/jpeg",
+});
 
 const n = (value: unknown) => Number(value) || 0;
 const normalizeItem = (raw: any): DealerInvoiceItem => {
@@ -30,6 +58,7 @@ const normalizeItem = (raw: any): DealerInvoiceItem => {
   invoiceDate: String(raw?.invoice_date ?? raw?.invoiceDate ?? ""), displayDate: String(raw?.display_date ?? raw?.displayDate ?? raw?.invoice_date ?? raw?.invoiceDate ?? ""),
   amount: n(raw?.amount), rewardAmount: n(raw?.reward_amount ?? raw?.rewardAmount), expectedRewardAmount: n(raw?.expected_reward_amount ?? raw?.expectedRewardAmount),
   schemeName: String(raw?.scheme_name ?? raw?.schemeName ?? ""), attachment: apiFileUrl(String(raw?.attachment_url ?? raw?.attachmentUrl ?? raw?.attachment ?? "")),
+  attachments: normalizeAttachments(raw),
   status: normalizedStatus, statusLabel: normalizedStatus === "approved" ? "Approved" : normalizedStatus === "rejected" ? "Rejected" : normalizedStatus === "hold" ? "Hold" : normalizedStatus === "in_process" ? "In Process" : "Pending",
   canEdit: Boolean(raw?.can_edit ?? raw?.canEdit), canDelete: Boolean(raw?.can_delete ?? raw?.canDelete),
   };
@@ -58,19 +87,20 @@ export const dealerInvoiceApi = {
     const { data } = await apiClient.get(`/dealer/invoices/${id}`);
     return normalizeItem(data?.data ?? data ?? {});
   },
-  async create(input: { retailerId: number; schemeId: number; invoiceNumber: string; invoiceDate: string; amount: number; attachment: UploadAsset }) {
+  async create(input: { retailerId: number; schemeId: number; invoiceNumber: string; invoiceDate: string; amount: number; attachments: UploadAsset[] }) {
     const form = new FormData();
     form.append("retailer_id", String(input.retailerId)); form.append("scheme_id", String(input.schemeId));
     form.append("invoice_number", input.invoiceNumber); form.append("invoice_date", input.invoiceDate); form.append("amount", String(input.amount));
-    form.append("attachment_file", { uri: input.attachment.uri, name: input.attachment.name || `invoice-${Date.now()}.jpg`, type: input.attachment.mimeType || "image/jpeg" } as any);
+    input.attachments.forEach((file, index) => form.append("attachment_files", formFile(file, index) as any));
     const { data } = await apiClient.post("/dealer/invoices", form, { headers: { "Content-Type": "multipart/form-data" } });
     return data;
   },
-  async update(id: string, input: { retailerId: number; schemeId: number; invoiceNumber: string; invoiceDate: string; amount: number; attachment?: UploadAsset | null }) {
+  async update(id: string, input: { retailerId: number; schemeId: number; invoiceNumber: string; invoiceDate: string; amount: number; attachments?: UploadAsset[]; removedAttachmentIds?: number[] }) {
     const form = new FormData();
     form.append("retailer_id", String(input.retailerId)); form.append("scheme_id", String(input.schemeId));
     form.append("invoice_number", input.invoiceNumber); form.append("invoice_date", input.invoiceDate); form.append("amount", String(input.amount));
-    if (input.attachment) form.append("attachment_file", { uri: input.attachment.uri, name: input.attachment.name || `invoice-${Date.now()}.jpg`, type: input.attachment.mimeType || "image/jpeg" } as any);
+    (input.attachments || []).forEach((file, index) => form.append("attachment_files", formFile(file, index) as any));
+    (input.removedAttachmentIds || []).forEach(removedId => form.append("removed_attachment_ids", String(removedId)));
     const { data } = await apiClient.post(`/dealer/invoices/${id}`, form, { headers: { "Content-Type": "multipart/form-data" } });
     return data;
   },

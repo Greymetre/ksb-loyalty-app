@@ -5,9 +5,10 @@ import { DealerInvoiceItem, dealerInvoiceApi } from "../../services/dealerInvoic
 import { showToast } from "../../services/toast";
 import { jakarta } from "../../styles/appStyles";
 import InvoiceAttachmentViewer from "@/components/InvoiceAttachmentViewer";
+import { isPdfAttachment } from "../../utils/invoiceAttachments";
 
 const money = (value: number) => `₹${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(value || 0)}`;
-const inProcessBadge = { backgroundColor: "#e8f1ff" } as const;
+const inProcessBadge = { backgroundColor: "#faf1de" } as const;
 const inProcessText = { color: "#3563aa" } as const;
 const holdBadge = { backgroundColor: "#efeaff" } as const;
 const holdText = { color: "#5b45c9" } as const;
@@ -96,11 +97,17 @@ export default function DealerInvoiceDetailsSheet({
             <Detail label="INVOICE AMOUNT" value={money(invoice.amount)} />
             <Detail label={approved ? "REWARD EARNED" : rejected ? "REWARD" : "EXPECTED REWARD"} value={rejected ? "No reward" : money(reward)} accent={!rejected} />
           </View>
-          {invoice.attachment ? <Pressable style={s.attachment} onPress={() => setPreviewAttachment(invoice.attachment)}>
-            <Image source={{ uri: invoice.attachment }} resizeMode="cover" style={s.attachmentPreview} />
-            <View style={s.attachmentText}><Text style={s.attachmentTitle}>Invoice attachment</Text><Text style={s.attachmentMeta}>Tap to view</Text></View>
+          {/* An invoice can carry up to ten files; each opens in the viewer. */}
+          {invoice.attachments.map((file, index) => <Pressable key={`att-${file.id}-${file.url}`} style={s.attachment} onPress={() => setPreviewAttachment(file.url)}>
+            {isPdfAttachment({ type: file.mimeType, name: file.fileName || file.url })
+              ? <View style={[s.attachmentPreview, s.attachmentDoc]}><Text style={s.attachmentDocIcon}>📄</Text></View>
+              : <Image source={{ uri: file.url }} resizeMode="cover" style={s.attachmentPreview} />}
+            <View style={s.attachmentText}>
+              <Text style={s.attachmentTitle} numberOfLines={1}>{file.fileName || `Invoice attachment ${index + 1}`}</Text>
+              <Text style={s.attachmentMeta}>Tap to view</Text>
+            </View>
             <Text style={s.attachmentOpen}>›</Text>
-          </Pressable> : null}
+          </Pressable>)}
 
           {(invoice.canEdit || invoice.canDelete) ? <View style={s.actions}>
             {invoice.canEdit && onEdit ? <Pressable style={s.edit} onPress={() => onEdit(invoice)}><Text style={s.editText}>✎  Edit</Text></Pressable> : null}
@@ -122,6 +129,6 @@ const s = StyleSheet.create({
   loading: { minHeight: 290, alignItems: "center", justifyContent: "center" }, loadingText: { fontFamily: jakarta.semiBold, color: colors.muted, fontSize: 13, marginTop: 11 }, errorIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#ffe9e9", color: colors.danger, textAlign: "center", textAlignVertical: "center", lineHeight: 44, fontFamily: jakarta.extraBold, fontSize: 23 },
   titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 }, title: { flex: 1, fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 21 }, badge: { borderRadius: 99, paddingHorizontal: 12, paddingVertical: 6 }, badgeText: { fontFamily: jakarta.bold, fontSize: 10 }, approvedBg: { backgroundColor: "#e5f8ee" }, pendingBg: { backgroundColor: "#fff2da" }, rejectedBg: { backgroundColor: "#ffe9e9" }, approved: { color: "#13875a" }, pending: { color: "#a96810" }, rejected: { color: colors.danger }, rule: { height: 1, backgroundColor: colors.border, marginVertical: 17 },
   retailerRow: { flexDirection: "row", alignItems: "center" }, storeIcon: { width: 54, height: 54, borderRadius: 27, backgroundColor: "#edf5ff", alignItems: "center", justifyContent: "center" }, storeEmoji: { fontSize: 23 }, retailerInfo: { flex: 1, marginLeft: 13 }, owner: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 16 }, shop: { fontFamily: jakarta.semiBold, color: colors.muted, fontSize: 13, marginTop: 2 }, retailerMeta: { fontFamily: jakarta.medium, color: "#98a6ba", fontSize: 10, marginTop: 3 },
-  details: { flexDirection: "row", flexWrap: "wrap", rowGap: 19 }, detail: { width: "50%", paddingRight: 12 }, detailLabel: { fontFamily: jakarta.bold, color: "#8c9ab0", fontSize: 9, letterSpacing: .5 }, detailValue: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 14, marginTop: 5, lineHeight: 19 }, detailAccent: { color: colors.primary }, attachment: { marginTop: 20, borderRadius: 16, backgroundColor: "#f4f8fd", borderWidth: 1, borderColor: colors.border, flexDirection: "row", alignItems: "center", padding: 9 }, attachmentPreview: { width: 64, height: 64, borderRadius: 12, backgroundColor: "#e7edf5" }, attachmentText: { flex: 1, marginLeft: 11 }, attachmentTitle: { fontFamily: jakarta.bold, color: colors.navy, fontSize: 12 }, attachmentMeta: { fontFamily: jakarta.medium, color: colors.primary, fontSize: 10, marginTop: 3 }, attachmentOpen: { color: colors.primary, fontSize: 26, paddingHorizontal: 7 },
-  actions: { flexDirection: "row", gap: 10, marginTop: 21 }, edit: { flex: 1, height: 50, borderRadius: 15, borderWidth: 1, borderColor: "#bad5fa", backgroundColor: "#eef6ff", alignItems: "center", justifyContent: "center" }, editText: { fontFamily: jakarta.bold, color: colors.primary, fontSize: 13 }, remove: { flex: 1, height: 50, borderRadius: 15, borderWidth: 1, borderColor: "#ffc3c8", backgroundColor: "#fff0f1", alignItems: "center", justifyContent: "center" }, removeText: { fontFamily: jakarta.bold, color: colors.danger, fontSize: 13 }, closeButton: { height: 50, borderRadius: 15, backgroundColor: "#edf3fb", alignItems: "center", justifyContent: "center", marginTop: 15 }, closeText: { fontFamily: jakarta.extraBold, color: colors.primary, fontSize: 13, textTransform: "uppercase", letterSpacing: 1 },
+  details: { flexDirection: "row", flexWrap: "wrap", rowGap: 19 }, detail: { width: "50%", paddingRight: 12 }, detailLabel: { fontFamily: jakarta.bold, color: "#8c9ab0", fontSize: 9, letterSpacing: .5 }, detailValue: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 14, marginTop: 5, lineHeight: 19 }, detailAccent: { color: colors.primary }, attachment: { marginTop: 20, borderRadius: 16, backgroundColor: "#f4f8fd", borderWidth: 1, borderColor: colors.border, flexDirection: "row", alignItems: "center", padding: 9 }, attachmentPreview: { width: 64, height: 64, borderRadius: 12, backgroundColor: "#e7edf5" }, attachmentText: { flex: 1, marginLeft: 11 }, attachmentTitle: { fontFamily: jakarta.bold, color: colors.navy, fontSize: 12 }, attachmentMeta: { fontFamily: jakarta.medium, color: colors.primary, fontSize: 10, marginTop: 3 }, attachmentOpen: { color: colors.primary, fontSize: 26, paddingHorizontal: 7 }, attachmentDoc: { alignItems: "center", justifyContent: "center" }, attachmentDocIcon: { fontSize: 24 },
+  actions: { flexDirection: "row", gap: 10, marginTop: 21 }, edit: { flex: 1, height: 50, borderRadius: 15, borderWidth: 1, borderColor: "#e0bd80", backgroundColor: "#faf2e2", alignItems: "center", justifyContent: "center" }, editText: { fontFamily: jakarta.bold, color: colors.primary, fontSize: 13 }, remove: { flex: 1, height: 50, borderRadius: 15, borderWidth: 1, borderColor: "#ffc3c8", backgroundColor: "#fff0f1", alignItems: "center", justifyContent: "center" }, removeText: { fontFamily: jakarta.bold, color: colors.danger, fontSize: 13 }, closeButton: { height: 50, borderRadius: 15, backgroundColor: "#edf3fb", alignItems: "center", justifyContent: "center", marginTop: 15 }, closeText: { fontFamily: jakarta.extraBold, color: colors.primary, fontSize: 13, textTransform: "uppercase", letterSpacing: 1 },
 });

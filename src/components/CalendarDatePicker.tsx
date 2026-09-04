@@ -111,11 +111,11 @@ function addMonths(date: Date, count: number) {
 const styles = StyleSheet.create({
   fieldWrap: { flex: 1 },
   fieldLabel: { marginBottom: 7, fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 10, letterSpacing: 1.4 },
-  fieldButton: { height: 46, borderRadius: 14, borderWidth: 1.2, borderColor: "#dfe6ee", backgroundColor: "#f9fbfd", paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 8 },
+  fieldButton: { height: 46, borderRadius: 14, borderWidth: 1.2, borderColor: "#dfe6ee", backgroundColor: "#fdf9f1", paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 8 },
   fieldText: { flex: 1, fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 12 },
   fieldPlaceholder: { color: "#9aa6b3" },
   fieldIcon: { fontFamily: jakarta.extraBold, color: colors.primary, fontSize: 16 },
-  calendar: { marginTop: 12, borderRadius: 18, borderWidth: 1.2, borderColor: "#d6e8f6", backgroundColor: "#f8fbff", padding: 14 },
+  calendar: { marginTop: 12, borderRadius: 18, borderWidth: 1.2, borderColor: "#d6e8f6", backgroundColor: "#fdf8ee", padding: 14 },
   calendarTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
   calendarTitle: { flex: 1, fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 14 },
   closeButton: { width: 30, height: 30, borderRadius: 10, backgroundColor: "#edf2f6", alignItems: "center", justifyContent: "center" },

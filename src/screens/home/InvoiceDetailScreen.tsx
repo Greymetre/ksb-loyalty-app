@@ -56,7 +56,7 @@ const s = StyleSheet.create({
   statusCard: { backgroundColor: "#e7f8ee", borderRadius: 16, padding: 16, marginBottom: 14 },
   pendingCard: { backgroundColor: "#fff5d9" },
   holdCard: { backgroundColor: "#efeaff" },
-  inProcessCard: { backgroundColor: "#e8f1ff" },
+  inProcessCard: { backgroundColor: "#faf1de" },
   rejectedCard: { backgroundColor: "#fff0f1" },
   statusTitle: { color: "#143053", fontSize: 17, fontWeight: "900" },
   statusSub: { color: "#64748b", fontSize: 12, marginTop: 5, fontWeight: "700" },
