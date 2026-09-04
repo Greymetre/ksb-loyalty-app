@@ -1,19 +1,28 @@
 export const colors = {
-  primary: "#15599a",
-  deepGreen: "#123d6d",
-  blue: "#2f8ed4",
-  cyan: "#5aa8df",
+  /* The brown of the logo's rising arrow, dark at its foot and light at the tip. These
+     four are the app's primary ramp: gradients are built from them and the solid fills,
+     icons and links use `primary`, so the whole app moves together rather than leaving
+     blue buttons under brown headers.
+
+     `primary` is a shade darker than the arrow's own base (#9c6307) because it also sets
+     text on white; this holds 6.2:1 there, and white on the ramp's dark end holds
+     7.7:1. */
+  primary: "#8a5a08",
+  deepGreen: "#744a07",
+  blue: "#b1780f",
+  cyan: "#c99518",
   gold: "#ffd54a",
   amber: "#f5a623",
   navy: "#11325b",
   navy2: "#173c68",
   text: "#1a2b3a",
   muted: "#566477",
-  background: "#f2f7fc",
+  // Screens are transparent: the app paints one backdrop behind everything (AppBackdrop).
+  background: "transparent",
   border: "#e3e9ef",
   white: "#ffffff",
   danger: "#d64545",
-  successSoft: "#e8f4ff",
+  successSoft: "#faf0dd",
   goldSoft: "#fff7d6"
 };
 

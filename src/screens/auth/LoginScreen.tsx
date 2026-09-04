@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Linking, Platform, Pressable, Text, TextInput, View } from "react-native";
 import AuthScaffold from "@/components/auth/AuthScaffold";
+import { AuthOrnament, AuthPhoneIcon } from "@/components/auth/AuthOrnament";
 import { authApi } from "@/services/authApi";
 import { PRIVACY_POLICY_URL } from "@/services/apiClient";
+import { SUPPORT_NUMBER_DISPLAY, callSupport } from "@/services/support";
 import { Route, SessionDraft } from "@/navigation/routes";
 import { styles } from "@/styles/appStyles";
 import { isValidIndianMobile } from "@/utils/validation";
@@ -116,7 +118,7 @@ export default function LoginScreen({
           ? testingCode.length === 6
           : code.length === 6 && passwordValid && password === confirmPassword;
 
-  const title = stage === "mobile" ? "Login to your\nAccount"
+  const title = stage === "mobile" ? "Login to your Account"
     : stage === "email" ? "Enter your email"
       : stage === "password" ? "Enter your password"
         : stage === "testing_notice" ? "Testing server notice"
@@ -129,7 +131,30 @@ export default function LoginScreen({
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-      <AuthScaffold showBrand bodyStyle={styles.loginAuthBody} footerContent={<Text style={styles.authHelpText}>Need help? Call <Text style={styles.authHelpLink}>99102 11716</Text></Text>}>
+      <AuthScaffold showBrand compactHero={stage !== "mobile"} bodyStyle={[styles.loginAuthBody, stage !== "mobile" && styles.loginAuthBodyTall]} footerContent={
+        <>
+          <View style={styles.authFooterRuleRow}>
+            <View style={styles.authFooterRule} />
+            <AuthOrnament size={12} />
+            <View style={styles.authFooterRule} />
+          </View>
+          <View style={styles.authHelpRow}>
+            <Pressable onPress={() => void callSupport()} hitSlop={10} accessibilityRole="button" accessibilityLabel={`Call ${SUPPORT_NUMBER_DISPLAY}`}>
+              <AuthPhoneIcon size={31} />
+            </Pressable>
+            <Text style={styles.authHelpText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
+              Need help? Call{" "}
+              <Text
+                style={styles.authHelpLink}
+                onPress={() => void callSupport()}
+                suppressHighlighting={false}
+              >
+                {SUPPORT_NUMBER_DISPLAY}
+              </Text>
+            </Text>
+          </View>
+        </>
+      }>
         <View style={[styles.authCard, styles.loginAuthCard]}>
           {stage !== "mobile" ? (
             <Pressable
@@ -142,9 +167,23 @@ export default function LoginScreen({
               <Text style={styles.authChangeMobileIcon}>‹</Text>
               <Text style={styles.authChangeMobileText}>Change mobile number</Text>
             </Pressable>
-          ) : <View style={styles.authWelcomeBadge}><Text style={styles.authWelcomeText}>👋  WELCOME</Text></View>}
-          <Text style={[styles.authCardTitle, styles.loginAuthCardTitle]}>{title}</Text>
-          <Text style={[styles.authDescription, styles.loginAuthDescription]}>{description}</Text>
+          ) : (
+            <>
+              <View style={styles.authOrnamentWrap}><AuthOrnament size={13} /></View>
+              <View style={styles.authWelcomeBadge}><Text style={styles.authWelcomeText}>WELCOME</Text></View>
+            </>
+          )}
+          <Text style={[styles.authCardTitle, styles.loginAuthCardTitle]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{title}</Text>
+          {/* One line, as the design has it. Shrinking a hair beats wrapping onto a
+              second line and pushing everything below it down. */}
+          <Text
+            style={[styles.authDescription, styles.loginAuthDescription]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.82}
+          >
+            {description}
+          </Text>
 
           <Text style={styles.authLabel}>MOBILE NUMBER</Text>
           <View style={[styles.authMobileInput, styles.loginAuthMobileInput, mobileValid && styles.authInputActive]}>
@@ -180,7 +219,8 @@ export default function LoginScreen({
           {stage === "password" ? <Pressable onPress={forgotPassword} disabled={loading}><Text style={styles.authForgotLink}>Forgot password?</Text></Pressable> : null}
           {stage !== "testing_notice" ? (
             <Pressable onPress={submit} disabled={!canSubmit || loading} style={[styles.authButton, styles.loginAuthButton, (!canSubmit || loading) && styles.authButtonDisabled]}>
-              <Text style={styles.authButtonText}>{loading ? "PLEASE WAIT..." : stage === "mobile" ? "CONTINUE  →" : stage === "email" ? "CONTINUE  →" : stage === "password" ? "LOGIN  →" : "SAVE PASSWORD  →"}</Text>
+              <Text style={styles.authButtonText}>{loading ? "PLEASE WAIT..." : stage === "mobile" || stage === "email" ? "CONTINUE" : stage === "password" ? "LOGIN" : "SAVE PASSWORD"}</Text>
+              {loading ? null : <Text style={styles.authButtonArrow}>&#8594;</Text>}
             </Pressable>
           ) : null}
           {stage === "set_password" ? (
@@ -193,7 +233,13 @@ export default function LoginScreen({
               <Text style={styles.authCancelButtonText}>CANCEL</Text>
             </Pressable>
           ) : null}
-          <Text style={styles.authTerms}>By continuing, you agree to KSB's <Text style={styles.authTermsLink}>Terms</Text> &amp; <Text style={styles.authTermsLink} onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}>Privacy Policy</Text></Text>
+          {/* Two lines, broken where the design breaks them, rather than wherever the
+              column happens to run out. */}
+          <Text style={[styles.authTerms, styles.authTermsFirst]}>By continuing, you agree to</Text>
+          <Text style={styles.authTerms}>
+            VRiDDHi&apos;s <Text style={styles.authTermsLink}>Terms</Text> &amp;{" "}
+            <Text style={styles.authTermsLink} onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}>Privacy Policy</Text>
+          </Text>
         </View>
       </AuthScaffold>
     </KeyboardAvoidingView>
