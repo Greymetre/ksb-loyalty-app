@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "splash": {
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#fdf7ec"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -14,15 +14,27 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.fieldkonnect.ksbretailerapp",
-      "icon": "./assets/icon.png"
+      "icon": "./assets/icon.png",
+      "buildNumber": "2",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": [
+          "tel",
+          "telprompt"
+        ]
+      }
     },
     "android": {
       "package": "com.fieldkonnect.vriddhiksb",
       "permissions": [
         "CAMERA"
       ],
-      "versionCode": 5,
-      "icon": "./assets/icon.png"
+      "versionCode": 9,
+      "icon": "./assets/icon.png",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#fdf6ea"
+      }
     },
     "plugins": [
       [
