@@ -207,7 +207,7 @@ export default function ProfileScreen({ go }: { go: (route: Route) => void }) {
           <Section title="Business Details">
             <ProfileField label="Owner Name" value={profile.ownerName} editable={editing} onChangeText={(value) => update("ownerName", value)} />
             <ProfileField label="Firm Name" value={profile.firmName} editable={editing} onChangeText={(value) => update("firmName", value)} />
-            <ProfileField label="Mobile" value={profile.mobile} editable={editing} keyboardType="phone-pad" onChangeText={(value) => update("mobile", value.replace(/\D/g, "").slice(0, 10))} />
+            <ProfileField label="Mobile" value={profile.mobile} editable={editing} keyboardType="number-pad" maxLength={10} onChangeText={(value) => update("mobile", value.replace(/\D/g, "").slice(0, 10))} />
             <ProfileField label="Email" value={profile.email} editable={editing} keyboardType="email-address" onChangeText={(value) => update("email", value)} />
             <ProfileField label="GST Number" value={profile.gstNumber} editable={editing} autoCapitalize="characters" onChangeText={(value) => update("gstNumber", value.toUpperCase())} />
           </Section>
