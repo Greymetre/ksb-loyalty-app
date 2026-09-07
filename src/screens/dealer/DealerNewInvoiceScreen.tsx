@@ -111,7 +111,7 @@ export default function DealerNewInvoiceScreen({ onBack, onCreated, invoice: ini
       <View style={s.estimate}><View><Text style={s.estimateTitle}>ESTIMATED REWARD</Text><Text style={s.estimateText}>Final reward approval calculation par milega</Text></View><Text style={s.points}>—</Text></View>
       <Pressable style={[s.submit, saving && s.disabled]} disabled={saving} onPress={submit}>{saving ? <ActivityIndicator color="#fff" /> : <Text style={s.submitText}>{editing ? "UPDATE INVOICE" : "SUBMIT INVOICE"}</Text>}</Pressable>
     </ScrollView>
-    <CalendarDatePicker visible={calendar} title="Invoice date" value={invoiceDate} maxDate={today()} onSelect={v => { setInvoiceDate(v); setCalendar(false); }} onClose={() => setCalendar(false)} />
+    <CalendarDatePicker asSheet visible={calendar} title="Invoice date" value={invoiceDate} maxDate={today()} onSelect={v => { setInvoiceDate(v); setCalendar(false); }} onClose={() => setCalendar(false)} />
     <Modal visible={!!picker} transparent animationType="fade" onRequestClose={() => setPicker(null)}><Pressable style={s.overlay} onPress={() => setPicker(null)}><Pressable style={s.sheet}>
       <View style={s.sheetHead}><Text style={s.sheetTitle}>{picker === "retailer" ? "Select retailer" : "Select scheme"}</Text><Pressable onPress={() => setPicker(null)}><Text style={s.close}>×</Text></Pressable></View>
       {picker === "retailer" ? <TextInput value={search} onChangeText={setSearch} placeholder="Search name, shop, code or mobile" style={s.search} /> : null}
