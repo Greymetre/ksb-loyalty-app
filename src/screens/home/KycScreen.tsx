@@ -25,8 +25,33 @@ const emptyKyc: KycDetails = {
   documents: []
 };
 
-export default function KycScreen({ go }: { go: (route: Route) => void }) {
+// The dealer login reuses this screen for a retailer assigned to it: pass the
+// retailer's id and name and it reads and writes that retailer's KYC instead of
+// the signed-in retailer's own. Everything else - fields, attachments, validation
+// and the submit flow - stays identical for both logins.
+export default function KycScreen({
+  go,
+  retailerId,
+  retailerName,
+  onBack,
+  bottomInset
+}: {
+  go?: (route: Route) => void;
+  retailerId?: number;
+  retailerName?: string;
+  onBack?: () => void;
+  // The dealer login keeps its tab bar floating over this screen, so the submit
+  // button needs room to clear it.
+  bottomInset?: number;
+}) {
   const insets = useSafeAreaInsets();
+  const goBack = () => (onBack ? onBack() : go?.("Profile"));
+  // Opened from the dealer's retailer list this screen sits inside the dealer shell,
+  // which already applies the top safe-area inset and paints the strip behind the
+  // clock in the light background every other dealer module uses. Applying the inset
+  // again left a band of empty cream, and forcing a light status bar made the clock
+  // and battery vanish into it.
+  const embedded = Boolean(retailerId);
   const [kyc, setKyc] = useState<KycDetails>(emptyKyc);
   const [files, setFiles] = useState<Partial<Record<KycDocKey, KycFile>>>({});
   const [loading, setLoading] = useState(true);
@@ -37,14 +62,14 @@ export default function KycScreen({ go }: { go: (route: Route) => void }) {
   const [previewUri, setPreviewUri] = useState<string | null>(null);
 
   useEffect(() => {
-    kycApi.get()
+    kycApi.get(retailerId)
       .then((data) => {
         setKyc(data);
         setFailed(false);
       })
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
-  }, []);
+  }, [retailerId]);
 
   const update = (key: keyof KycDetails, value: string) => setKyc((current) => ({ ...current, [key]: value }));
 
@@ -133,7 +158,7 @@ export default function KycScreen({ go }: { go: (route: Route) => void }) {
     if (!validateKyc()) return;
     setSaving(true);
     try {
-      const updated = await kycApi.update({ ...kyc, files });
+      const updated = await kycApi.update({ ...kyc, files }, retailerId);
       setKyc(updated);
       setFiles({});
       showToast("KYC details submitted for review", "success");
@@ -152,21 +177,23 @@ export default function KycScreen({ go }: { go: (route: Route) => void }) {
     );
   }
 
-  if (failed) return <EmptyScreen title="KYC unavailable" message="Unable to load KYC details." onBack={() => go("Profile")} />;
+  if (failed) return <EmptyScreen title="KYC unavailable" message="Unable to load KYC details." onBack={goBack} />;
 
   return (
     <SafeAreaView edges={["left", "right"]} style={screenStyles.safe}>
-      <StatusBar style="light" />
-      <View style={[screenStyles.phone, { paddingTop: Math.max(insets.top, 12) }]}>
+      <StatusBar style={embedded ? "dark" : "light"} />
+      <View style={[screenStyles.phone, { paddingTop: embedded ? 0 : Math.max(insets.top, 12) }]}>
         <View style={screenStyles.header}>
           <LinearGradient colors={gradients.main} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-          <Pressable onPress={() => go("Profile")} style={screenStyles.headerButton}><Text style={screenStyles.headerButtonText}>←</Text></Pressable>
+          <Pressable onPress={goBack} style={screenStyles.headerButton}><Text style={screenStyles.headerButtonText}>←</Text></Pressable>
           <Text style={screenStyles.headerTitle}>KYC DETAILS</Text>
-          <Text style={screenStyles.headerBig}>Verify documents</Text>
-          <Text style={screenStyles.headerSub}>Update details and attachments for GST, PAN, Aadhaar and bank proof</Text>
+          <Text numberOfLines={1} style={screenStyles.headerBig}>{retailerName || "Verify documents"}</Text>
+          <Text style={screenStyles.headerSub}>{retailerName
+            ? "Update this retailer's details and attachments for GST, PAN, Aadhaar and bank proof"
+            : "Update details and attachments for GST, PAN, Aadhaar and bank proof"}</Text>
         </View>
 
-        <ScrollView style={screenStyles.scroll} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={screenStyles.content}>
+        <ScrollView style={screenStyles.scroll} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={[screenStyles.content, bottomInset ? { paddingBottom: bottomInset } : null]}>
           <View style={screenStyles.summaryCard}>
             <View>
               <Text style={screenStyles.summaryLabel}>KYC STATUS</Text>
@@ -188,33 +215,37 @@ export default function KycScreen({ go }: { go: (route: Route) => void }) {
             {kyc.documents.map((doc) => <DocStatus key={doc.key} doc={doc} />)}
           </View>
 
-          <Section title="Document Details">
-            <KycField label="GST Number" value={kyc.gstNumber} autoCapitalize="characters" onChangeText={(value) => update("gstNumber", value.toUpperCase())} />
-            <KycField label="PAN Number" value={kyc.panNumber} autoCapitalize="characters" onChangeText={(value) => update("panNumber", value.toUpperCase())} />
-            <KycField label="Aadhaar Number" value={kyc.aadharNo} keyboardType="number-pad" onChangeText={(value) => update("aadharNo", value.replace(/\D/g, "").slice(0, 12))} />
-          </Section>
-
-          <Section title="Bank Proof">
-            <KycField label="Account Holder" value={kyc.accountHolderName} onChangeText={(value) => update("accountHolderName", value)} />
-            <KycField label="Bank Name" value={kyc.bankName} onChangeText={(value) => update("bankName", value)} />
-            <KycField label="Account Type" value={kyc.bankAccountType} onChangeText={(value) => update("bankAccountType", value)} />
-            <KycField label="Account Number" value={kyc.bankAccountNumber} keyboardType="number-pad" onChangeText={(value) => update("bankAccountNumber", value.replace(/\D/g, ""))} />
-            <KycField label="IFSC Code" value={kyc.ifscCode} autoCapitalize="characters" onChangeText={(value) => update("ifscCode", value.toUpperCase())} />
-          </Section>
-
-          <Section title="Attachments">
-            {kyc.documents.map((doc) => (
+          {/* One block per document: its attachment first, then the numbers that
+              belong to it - so Aadhaar's photo and Aadhaar's number are read and
+              filled together instead of living in two distant sections. */}
+          {kyc.documents.map((doc) => {
+            const locked = isApprovedDocument(doc);
+            return (
               <AttachmentCard
-                onPreview={setPreviewUri}
                 key={doc.key}
+                onPreview={setPreviewUri}
                 doc={doc}
+                locked={locked}
                 selectedFile={files[doc.key]}
                 picking={pickingKey === doc.key}
                 onCamera={() => pickCamera(doc.key)}
                 onGallery={() => pickGallery(doc.key)}
-              />
-            ))}
-          </Section>
+              >
+                {documentFields[doc.key].map((field) => (
+                  <KycField
+                    key={field.key}
+                    label={field.label}
+                    value={String(kyc[field.key] ?? "")}
+                    editable={!locked}
+                    style={[screenStyles.input, locked && screenStyles.inputLocked]}
+                    keyboardType={field.keyboardType}
+                    autoCapitalize={field.autoCapitalize}
+                    onChangeText={(value) => update(field.key, field.clean ? field.clean(value) : value)}
+                  />
+                ))}
+              </AttachmentCard>
+            );
+          })}
 
           <Pressable disabled={saving} onPress={submit} style={screenStyles.submitWrap}>
             <LinearGradient colors={gradients.main} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={screenStyles.submitButton}>
@@ -228,14 +259,41 @@ export default function KycScreen({ go }: { go: (route: Route) => void }) {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <View style={screenStyles.section}>
-      <Text style={screenStyles.sectionTitle}>{title}</Text>
-      {children}
-    </View>
-  );
-}
+// Each document now carries its own fields, so the old shared Section wrapper went
+// away with the "Document Details" and "Bank Proof" blocks it used to hold.
+type KycFieldKey = "gstNumber" | "panNumber" | "aadharNo" | "accountHolderName" | "bankName" | "bankAccountType" | "bankAccountNumber" | "ifscCode";
+
+type KycFieldSpec = {
+  key: KycFieldKey;
+  label: string;
+  keyboardType?: "number-pad";
+  autoCapitalize?: "characters";
+  clean?: (value: string) => string;
+};
+
+const digitsOnly = (value: string) => value.replace(/\D/g, "");
+
+// Which numbers belong under which document. The bank proof carries five, the
+// other three carry one each.
+const documentFields: Record<KycDocKey, KycFieldSpec[]> = {
+  gst: [{ key: "gstNumber", label: "GST Number", autoCapitalize: "characters", clean: (value) => value.toUpperCase() }],
+  pan: [{ key: "panNumber", label: "PAN Number", autoCapitalize: "characters", clean: (value) => value.toUpperCase() }],
+  aadhar: [{ key: "aadharNo", label: "Aadhaar Number", keyboardType: "number-pad", clean: (value) => digitsOnly(value).slice(0, 12) }],
+  bank: [
+    { key: "accountHolderName", label: "Account Holder" },
+    { key: "bankName", label: "Bank Name" },
+    { key: "bankAccountType", label: "Account Type" },
+    { key: "bankAccountNumber", label: "Account Number", keyboardType: "number-pad", clean: digitsOnly },
+    { key: "ifscCode", label: "IFSC Code", autoCapitalize: "characters", clean: (value) => value.toUpperCase() }
+  ]
+};
+
+// An approved document is finished. Its number and its file are read-only from here
+// on; the server refuses changes to it as well, so this only saves a wasted trip.
+const isApprovedDocument = (doc: KycDocument) =>
+  String(doc.status || "").toLowerCase().includes("approve")
+  || String(doc.status || "").toLowerCase() === "verified"
+  || doc.statusLabel.toLowerCase() === "approved";
 
 function KycField(props: React.ComponentProps<typeof TextInput> & { label: string; value: string }) {
   const { label, ...inputProps } = props;
@@ -277,6 +335,8 @@ function AttachmentCard({
   doc,
   selectedFile,
   picking,
+  locked,
+  children,
   onCamera,
   onGallery,
   onPreview
@@ -284,6 +344,8 @@ function AttachmentCard({
   doc: KycDocument;
   selectedFile?: KycFile;
   picking?: boolean;
+  locked?: boolean;
+  children?: React.ReactNode;
   onCamera: () => void;
   onGallery: () => void;
   onPreview: (uri: string) => void;
@@ -314,12 +376,8 @@ function AttachmentCard({
             <Text style={screenStyles.attachmentTitle}>{doc.title}</Text>
             <Text style={screenStyles.requiredBadge}>{doc.statusLabel}</Text>
           </View>
-          {(doc.details.length ? doc.details : [{ key: doc.key, label: doc.numberLabel, value: doc.number }]).map((item) => (
-            <View key={item.key} style={screenStyles.detailRow}>
-              <Text style={screenStyles.detailLabel}>{item.label}</Text>
-              <Text style={screenStyles.detailValue}>{item.value || "-"}</Text>
-            </View>
-          ))}
+          {/* The numbers used to be repeated here as read-only rows. They now sit
+              under this card as their own inputs, so repeating them only added noise. */}
           {doc.actionBy || doc.actionAt ? <Text style={screenStyles.actionMeta}>{[doc.actionBy, doc.actionAt ? new Date(doc.actionAt).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : ""].filter(Boolean).join(" / ")}</Text> : null}
           {doc.attachmentUrl ? <Pressable onPress={openAttachment}><Text numberOfLines={1} style={screenStyles.viewAttachment}>View current · {doc.attachmentName || "Attachment"}</Text></Pressable> : null}
           {selectedFile ? <Text numberOfLines={1} style={screenStyles.selectedFile}>✓ New file: {selectedFile.name}</Text> : null}
@@ -328,9 +386,16 @@ function AttachmentCard({
       </View>
       <View style={screenStyles.attachmentActions}>
         <Pressable onPress={openAttachment} style={screenStyles.viewButton}><Text style={screenStyles.viewButtonText}>View</Text></Pressable>
-        <Pressable disabled={picking} onPress={onCamera} style={[screenStyles.cameraButton, picking && screenStyles.pickerButtonDisabled]}><Text style={screenStyles.cameraText}>{picking ? "Opening..." : "📷  Camera"}</Text></Pressable>
-        <Pressable disabled={picking} onPress={onGallery} style={[screenStyles.galleryButton, picking && screenStyles.pickerButtonDisabled]}><Text style={screenStyles.galleryText}>{picking ? "Opening..." : "▣  Gallery"}</Text></Pressable>
+        {locked ? (
+          <View style={screenStyles.lockedNote}><Text style={screenStyles.lockedNoteText}>Approved · cannot be changed</Text></View>
+        ) : (
+          <>
+            <Pressable disabled={picking} onPress={onCamera} style={[screenStyles.cameraButton, picking && screenStyles.pickerButtonDisabled]}><Text style={screenStyles.cameraText}>{picking ? "Opening..." : "📷  Camera"}</Text></Pressable>
+            <Pressable disabled={picking} onPress={onGallery} style={[screenStyles.galleryButton, picking && screenStyles.pickerButtonDisabled]}><Text style={screenStyles.galleryText}>{picking ? "Opening..." : "▣  Gallery"}</Text></Pressable>
+          </>
+        )}
       </View>
+      {children}
     </View>
   );
 }
@@ -341,12 +406,14 @@ const screenStyles = StyleSheet.create({
   scroll: { flex: 1 },
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10 },
   loadingText: { fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 13 },
-  header: { height: 238, paddingHorizontal: 28, paddingTop: 44, overflow: "hidden" },
-  headerButton: { position: "absolute", left: 28, top: 54, width: 46, height: 46, borderRadius: 15, borderWidth: 1.4, borderColor: "rgba(255,255,255,0.42)", backgroundColor: "rgba(255,255,255,0.16)", alignItems: "center", justifyContent: "center", zIndex: 2 },
-  headerButtonText: { fontFamily: jakarta.extraBold, color: colors.white, fontSize: 21, marginTop: -2 },
-  headerTitle: { marginTop: 26, textAlign: "center", fontFamily: jakarta.extraBold, color: colors.white, fontSize: 15, letterSpacing: 6 },
-  headerBig: { marginTop: 34, fontFamily: jakarta.extraBold, color: colors.white, fontSize: 30 },
-  headerSub: { marginTop: 7, maxWidth: 310, fontFamily: jakarta.bold, color: "rgba(255,255,255,0.82)", fontSize: 13, lineHeight: 19 },
+  // The header is fixed above the scroll area, so every point it takes is a point
+  // the documents never get. Sized by its content instead of a fixed 238.
+  header: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 18, overflow: "hidden" },
+  headerButton: { position: "absolute", left: 24, top: 12, width: 40, height: 40, borderRadius: 13, borderWidth: 1.4, borderColor: "rgba(255,255,255,0.42)", backgroundColor: "rgba(255,255,255,0.16)", alignItems: "center", justifyContent: "center", zIndex: 2 },
+  headerButtonText: { fontFamily: jakarta.extraBold, color: colors.white, fontSize: 19, marginTop: -2 },
+  headerTitle: { marginTop: 11, textAlign: "center", fontFamily: jakarta.extraBold, color: colors.white, fontSize: 13, letterSpacing: 4.5 },
+  headerBig: { marginTop: 18, fontFamily: jakarta.extraBold, color: colors.white, fontSize: 23 },
+  headerSub: { marginTop: 5, maxWidth: 310, fontFamily: jakarta.bold, color: "rgba(255,255,255,0.82)", fontSize: 12, lineHeight: 17 },
   content: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 12, paddingBottom: 34 },
   summaryCard: { marginBottom: 16, borderRadius: 22, borderWidth: 1, borderColor: "#e2c58c", backgroundColor: "#faf0dd", padding: 18, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   summaryLabel: { fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 10, letterSpacing: 2.1 },
@@ -369,6 +436,9 @@ const screenStyles = StyleSheet.create({
   fieldLabel: { marginBottom: 8, fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 11, letterSpacing: 1.8 },
   input: { minHeight: 48, borderRadius: 14, borderWidth: 1.2, borderColor: "#dfe6ee", backgroundColor: "#fdf9f1", paddingHorizontal: 14, paddingVertical: 0, fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 14 },
   attachmentCard: { marginTop: 14, borderRadius: 17, borderWidth: 1.2, borderColor: "#9be8ba", backgroundColor: colors.white, padding: 14 },
+  inputLocked: { backgroundColor: "#f1f4f8", color: colors.muted, borderColor: "#e3e9f0" },
+  lockedNote: { flex: 1, height: 42, borderRadius: 14, borderWidth: 1.2, borderColor: "#e2c58c", backgroundColor: "#faf0dd", alignItems: "center", justifyContent: "center" },
+  lockedNoteText: { fontFamily: jakarta.extraBold, color: "#a97900", fontSize: 12 },
   attachmentTop: { flexDirection: "row", alignItems: "flex-start", gap: 13 },
   previewBox: { width: 92, height: 82, borderRadius: 13, overflow: "hidden", borderWidth: 1, borderColor: "#dfe6ee", backgroundColor: "#f4f7fa" },
   previewImage: { width: "100%", height: "100%" },

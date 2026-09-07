@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, T
 import { LinearGradient } from "expo-linear-gradient";
 import { colors, gradients } from "../../constants/colors";
 import { DealerRetailerFilter, DealerRetailerList, DealerRetailerListItem, dealerRetailerApi } from "../../services/dealerRetailerApi";
+import KycScreen from "../home/KycScreen";
 import { jakarta } from "../../styles/appStyles";
 
 const empty: DealerRetailerList = {
@@ -18,6 +19,9 @@ export default function DealerRetailersScreen({ onBack, initialFilter = "all", i
   // now driving the filter, and the list opens up to every assigned retailer.
   const [activeOnly, setActiveOnly] = useState(initialActiveOnly);
   const [search, setSearch] = useState("");
+  // The retailer whose KYC is open. The dealer fills and views it on the very same
+  // screen the retailer sees under its own profile.
+  const [selected, setSelected] = useState<DealerRetailerListItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -70,6 +74,17 @@ export default function DealerRetailersScreen({ onBack, initialFilter = "all", i
     setFilter(next);
   };
 
+  // Coming back reloads the list so a KYC just submitted shows its new badge.
+  if (selected) return <KycScreen
+    retailerId={selected.id}
+    retailerName={selected.shopName || selected.ownerName}
+    bottomInset={130}
+    onBack={() => {
+      setSelected(null);
+      void load(true);
+    }}
+  />;
+
   return <View style={s.root}>
     <LinearGradient colors={gradients.main} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
       <View style={s.header}>
@@ -95,7 +110,7 @@ export default function DealerRetailersScreen({ onBack, initialFilter = "all", i
         <View style={s.cards}>
           {loading ? <View style={s.loading}><ActivityIndicator color={colors.primary} /><Text style={s.loadingText}>Loading retailers</Text></View> : null}
           {!loading && !visibleItems.length ? <View style={s.empty}><Text style={s.emptyIcon}>🏪</Text><Text style={s.emptyTitle}>No retailers found</Text><Text style={s.emptyText}>{filter === "pending" ? "Every assigned retailer has completed KYC." : "Retailers assigned to you will appear here."}</Text></View> : null}
-          {visibleItems.map(item => <RetailerCard key={item.id} item={item} />)}
+          {visibleItems.map(item => <RetailerCard key={item.id} item={item} onOpen={() => setSelected(item)} />)}
           {!loading && data.items.length < data.total ? <Pressable onPress={() => void loadMore()} disabled={loadingMore} style={s.more}>{loadingMore ? <ActivityIndicator color="#fff" /> : <Text style={s.moreText}>Load more retailers</Text>}</Pressable> : null}
         </View>
       </ScrollView>
@@ -114,22 +129,23 @@ function Summary({ label, value }: { label: string; value: number }) {
   return <View style={s.summary}><Text style={s.summaryLabel}>{label}</Text><Text style={s.summaryValue}>{value}</Text></View>;
 }
 
-function RetailerCard({ item }: { item: DealerRetailerListItem }) {
+function RetailerCard({ item, onOpen }: { item: DealerRetailerListItem; onOpen: () => void }) {
   const initials = item.ownerName.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]?.toUpperCase()).join("") || "R";
   const verified = item.kycStatus === "verified";
   const meta = [item.shopName, item.beatName].filter(Boolean).join(" · ");
-  return <View style={s.card}>
+  return <Pressable onPress={onOpen} style={({ pressed }) => [s.card, pressed && s.cardPressed]}>
     <View style={s.avatar}><Text style={s.avatarText}>{initials}</Text></View>
     <View style={s.cardBody}>
       <Text style={s.owner} numberOfLines={1}>{item.ownerName}</Text>
       <Text style={s.meta} numberOfLines={1}>{meta || item.code || item.mobile}</Text>
       {item.code ? <Text style={s.code} numberOfLines={1}>{item.code}{item.mobile ? ` · ${item.mobile}` : ""}</Text> : null}
+      <Text style={s.openKyc}>{verified ? "View KYC" : "Complete KYC"} →</Text>
     </View>
     <View style={s.cardRight}>
       <View style={[s.badge, verified ? s.verifiedBg : s.pendingBg]}><Text style={[s.badgeText, verified ? s.verified : s.pending]}>{item.kycStatusLabel}</Text></View>
       <Text style={s.points}>{new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(item.rewardPoints)} pts</Text>
     </View>
-  </View>;
+  </Pressable>;
 }
 
 const s = StyleSheet.create({
@@ -148,6 +164,6 @@ const s = StyleSheet.create({
   chipCountText: { fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 10 },
   chipCountTextActive: { color: "#fff" },
   list: { paddingTop: 16, paddingBottom: 135 }, cards: { gap: 12 }, loading: { padding: 30, alignItems: "center" }, loadingText: { fontFamily: jakarta.medium, color: colors.muted, marginTop: 8 }, empty: { padding: 35, alignItems: "center", backgroundColor: "#fff", borderRadius: 22 }, emptyIcon: { fontSize: 30 }, emptyTitle: { fontFamily: jakarta.bold, color: colors.navy, marginTop: 8 }, emptyText: { fontFamily: jakarta.medium, color: colors.muted, fontSize: 11, marginTop: 5 },
-  card: { minHeight: 102, flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 21, borderWidth: 1, borderColor: colors.border, padding: 15 }, avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: "#eaf3ff", alignItems: "center", justifyContent: "center" }, avatarText: { fontFamily: jakarta.extraBold, color: colors.primary, fontSize: 16 }, cardBody: { flex: 1, minWidth: 0, marginLeft: 12 }, owner: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 14 }, meta: { fontFamily: jakarta.semiBold, color: colors.muted, fontSize: 11, marginTop: 3 }, code: { fontFamily: jakarta.medium, color: "#98a6ba", fontSize: 9, marginTop: 4 }, cardRight: { alignItems: "flex-end", marginLeft: 8 }, badge: { borderRadius: 99, paddingHorizontal: 10, paddingVertical: 5 }, badgeText: { fontFamily: jakarta.bold, fontSize: 9 }, verifiedBg: { backgroundColor: "#e5f8ee" }, verified: { color: "#13875a" }, pendingBg: { backgroundColor: "#fff2da" }, pending: { color: "#a96810" }, points: { fontFamily: jakarta.extraBold, color: colors.primary, fontSize: 12, marginTop: 7 },
+  card: { minHeight: 102, flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 21, borderWidth: 1, borderColor: colors.border, padding: 15 }, avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: "#eaf3ff", alignItems: "center", justifyContent: "center" }, avatarText: { fontFamily: jakarta.extraBold, color: colors.primary, fontSize: 16 }, cardBody: { flex: 1, minWidth: 0, marginLeft: 12 }, owner: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 14 }, meta: { fontFamily: jakarta.semiBold, color: colors.muted, fontSize: 11, marginTop: 3 }, code: { fontFamily: jakarta.medium, color: "#98a6ba", fontSize: 9, marginTop: 4 }, openKyc: { fontFamily: jakarta.extraBold, color: colors.primary, fontSize: 10, marginTop: 6 }, cardPressed: { opacity: .75 }, cardRight: { alignItems: "flex-end", marginLeft: 8 }, badge: { borderRadius: 99, paddingHorizontal: 10, paddingVertical: 5 }, badgeText: { fontFamily: jakarta.bold, fontSize: 9 }, verifiedBg: { backgroundColor: "#e5f8ee" }, verified: { color: "#13875a" }, pendingBg: { backgroundColor: "#fff2da" }, pending: { color: "#a96810" }, points: { fontFamily: jakarta.extraBold, color: colors.primary, fontSize: 12, marginTop: 7 },
   more: { height: 48, borderRadius: 16, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center", marginTop: 4 }, moreText: { fontFamily: jakarta.bold, color: "#fff", fontSize: 12 },
 });

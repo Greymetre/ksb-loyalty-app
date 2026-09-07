@@ -203,12 +203,17 @@ const appendFile = (form: FormData, key: string, file?: KycFile) => {
   } as any);
 };
 
+// A dealer opens the very same KYC screen for a retailer assigned to it. Only the
+// path changes - payload and response are identical, so both logins share one
+// implementation instead of drifting apart.
+const kycPath = (retailerId?: number) => (retailerId ? `/dealer/retailers/${retailerId}/kyc` : "/retailer/kyc");
+
 export const kycApi = {
-  async get() {
-    const { data } = await apiClient.get("/retailer/kyc");
+  async get(retailerId?: number) {
+    const { data } = await apiClient.get(kycPath(retailerId));
     return normalizeKyc(data);
   },
-  async update(payload: KycUpdatePayload) {
+  async update(payload: KycUpdatePayload, retailerId?: number) {
     const form = new FormData();
     form.append("gst_number", payload.gstNumber);
     form.append("pan_number", payload.panNumber);
@@ -223,7 +228,7 @@ export const kycApi = {
     appendFile(form, "aadhar_attachment", payload.files?.aadhar);
     appendFile(form, "bank_proof", payload.files?.bank);
 
-    const { data } = await apiClient.put("/retailer/kyc", form, {
+    const { data } = await apiClient.put(kycPath(retailerId), form, {
       headers: { "Content-Type": "multipart/form-data" }
     });
     return normalizeKyc(data);
