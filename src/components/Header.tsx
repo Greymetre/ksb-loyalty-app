@@ -11,7 +11,7 @@ export function Header({ title, onMenu, onBack }: { title: string; onMenu?: () =
       </Pressable>
       <View style={styles.titleWrap}>
         <Text style={styles.title}>{title}</Text>
-        <Text style={styles.sub}>Vriddhi KSB</Text>
+        <Text style={styles.sub}>KSB-VRiDDHi</Text>
       </View>
       <KsbLogo size={42} />
     </View>

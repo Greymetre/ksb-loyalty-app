@@ -56,8 +56,8 @@ export default function HomeScreen({ go, onOpenScheme }: { go: (route: Route) =>
   const regularSchemes = dashboard.activeSchemes.filter((scheme) => !isBoosterScheme(scheme));
   const boosterSchemes = dashboard.activeSchemes.filter(isBoosterScheme);
   const schemeGroups = [
-    { key: "regular", title: "Active Regular Schemes", emptyText: "No currently active regular schemes.", schemes: regularSchemes },
-    { key: "booster", title: "Active Booster Schemes", emptyText: "No currently active booster schemes.", schemes: boosterSchemes }
+    { key: "regular", title: "Regular Schemes", emptyText: "No regular schemes yet.", schemes: regularSchemes },
+    { key: "booster", title: "Booster Schemes", emptyText: "No booster schemes yet.", schemes: boosterSchemes }
   ];
   const schemeTiers = dashboard?.currentSchemeTiers || [];
   const regularSchemeTiers = slabWallet?.progressSteps?.length ? slabWallet.progressSteps : getWalletTiers(schemeTiers, "regular");
@@ -141,7 +141,10 @@ export default function HomeScreen({ go, onOpenScheme }: { go: (route: Route) =>
                     <Text style={localStyles.schemeName}>{scheme.name}</Text>
                     <Text style={localStyles.schemePeriod}>{scheme.period}</Text>
                   </View>
-                  <StatusBadge label={`${scheme.daysLeft}DAY LEFT`} tone="green" />
+                  <StatusBadge
+                    label={scheme.isLive === false ? "ENDED" : `${scheme.daysLeft}DAY LEFT`}
+                    tone={scheme.isLive === false ? "navy" : "green"}
+                  />
                 </View>
                 <View style={localStyles.metricRow}>
                   <View><Text style={localStyles.metricLabel}>Achievement</Text><Text style={localStyles.metricValue}>{money(scheme.achievementValue)}</Text></View>

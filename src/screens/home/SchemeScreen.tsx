@@ -56,7 +56,7 @@ export default function SchemeScreen({ go, selectedScheme, dashboardSchemes }: S
           return mergeSchemeProgress(detail || dashboardScheme, dashboardScheme);
         })
       : schemes;
-  if (!visibleSchemes.length) return <EmptyScreen title="Scheme unavailable" message={selectedScheme == null ? "There are no currently active schemes." : "The selected scheme is no longer active."} onBack={() => go("Home")} />;
+  if (!visibleSchemes.length) return <EmptyScreen title="Scheme unavailable" message={selectedScheme == null ? "No schemes have been run for your account yet." : "This scheme is no longer available."} onBack={() => go("Home")} />;
 
   return (
     <Screen>
@@ -64,9 +64,13 @@ export default function SchemeScreen({ go, selectedScheme, dashboardSchemes }: S
       <ScrollView contentContainerStyle={styles.pagePad}>
         {visibleSchemes.map((scheme) => <View key={scheme.id} style={localStyles.schemeBlock}>
           <GradientCard>
-            <StatusBadge label={`${scheme.daysLeft}DAY LEFT`} />
+            <StatusBadge
+              label={scheme.isLive === false ? "ENDED" : `${scheme.daysLeft}DAY LEFT`}
+              tone={scheme.isLive === false ? "navy" : "green"}
+            />
             <Text style={styles.hindiHero}>{scheme.name}</Text>
             <Text style={styles.heroSub}>{scheme.period}</Text>
+            {scheme.note ? <Text style={localStyles.note}>{scheme.note}</Text> : null}
           </GradientCard>
           {scheme.description ? <Text style={localStyles.description}>{scheme.description}</Text> : null}
           <Text style={styles.sectionTitle}>Slabs & Reward Rules</Text>
@@ -75,13 +79,17 @@ export default function SchemeScreen({ go, selectedScheme, dashboardSchemes }: S
             <Text style={localStyles.progressTitle}>Your progress</Text>
             <Text style={localStyles.progressText}>Achievement: ₹{scheme.achievementValue.toLocaleString("en-IN")}</Text>
             <Text style={localStyles.progressText}>Current slab: {scheme.currentSlab || "Not reached"}</Text>
-            <Text style={localStyles.progressText}>{scheme.nextSlab ? `₹${scheme.additionalValueRequired.toLocaleString("en-IN")} more required for ${scheme.nextSlab}` : "Highest slab reached"}</Text>
+            <Text style={localStyles.progressText}>{scheme.isLive === false
+              ? "This scheme has ended."
+              : scheme.nextSlab
+                ? `₹${scheme.additionalValueRequired.toLocaleString("en-IN")} more required for ${scheme.nextSlab}`
+                : "Highest slab reached"}</Text>
             {scheme.pendingInvoiceValue > 0 ? <Text style={localStyles.awaiting}>Expected ₹{scheme.expectedPendingReward.toLocaleString("en-IN")} · Awaiting Approval</Text> : null}
           </View>
           {scheme.brochurePath ? <Pressable style={localStyles.pdfButton} onPress={() => setPreviewUri(apiFileUrl(scheme.brochurePath))}><Text style={localStyles.pdfButtonText}>View / Download Scheme PDF</Text></Pressable> : null}
         </View>)}
       </ScrollView>
-      <InvoiceAttachmentViewer uri={previewUri} onClose={() => setPreviewUri(null)} />
+      <InvoiceAttachmentViewer uri={previewUri} title="Scheme brochure" onClose={() => setPreviewUri(null)} />
     </Screen>
   );
 }
@@ -89,6 +97,9 @@ export default function SchemeScreen({ go, selectedScheme, dashboardSchemes }: S
 const localStyles = StyleSheet.create({
   schemeBlock: { marginBottom: 28 },
   description: { color: "#607087", lineHeight: 20, marginTop: 14 },
+  // Sits inside the gradient hero, right under the dates, so it takes the same
+  // muted white the period line uses rather than the page's body colour.
+  note: { color: "rgba(255,255,255,0.9)", fontSize: 12.5, lineHeight: 18, marginTop: 6 },
   progressBox: { backgroundColor: "#faf2e2", borderRadius: 14, padding: 14, marginTop: 14 },
   progressTitle: { color: "#142744", fontWeight: "800", marginBottom: 7 },
   progressText: { color: "#50627a", fontSize: 12, marginTop: 4 },

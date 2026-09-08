@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -38,6 +38,8 @@ const fileNameFrom = (uri: string) => {
 
 const isPdf = (uri: string) => /\.pdf$/i.test(uri.split("?")[0]);
 
+const isRemote = (uri: string) => /^https?:\/\//i.test(uri);
+
 const mimeTypeFor = (name: string) => {
   if (/\.pdf$/i.test(name)) return "application/pdf";
   if (/\.png$/i.test(name)) return "image/png";
@@ -45,40 +47,101 @@ const mimeTypeFor = (name: string) => {
   return "image/jpeg";
 };
 
+// A cache name that cannot collide with another attachment, and cannot carry a
+// stray character from the server's own file name into a filesystem path.
+const cacheNameFor = (uri: string) => {
+  let hash = 5381;
+  for (let index = 0; index < uri.length; index += 1) hash = ((hash * 33) ^ uri.charCodeAt(index)) >>> 0;
+  return `attachment-${hash.toString(16)}.pdf`;
+};
+
+const errorText = (error: unknown) => {
+  const message = (error as Error)?.message ?? error;
+  const text = message == null ? "" : String(message).trim();
+  return text || "please try again";
+};
+
 /**
- * Shows an invoice attachment inside the app and lets the customer keep a copy.
- * The download saves through the platform's own picker, so the file lands
- * somewhere the customer chose rather than in the app's private storage.
+ * Shows an attachment inside the app and lets the customer keep a copy.
+ *
+ * A remote PDF is fetched to the cache first and the viewer is pointed at that
+ * local file. react-native-pdf can fetch a URL itself, but it does so through
+ * react-native-blob-util's own HTTP stack, and on the store build that fetch is
+ * what fails - the very same file downloads fine through the call below. Handing
+ * the viewer a file it only has to render keeps the network out of it entirely,
+ * and anything that does still go wrong is now named on screen instead of hiding
+ * behind "preview is not available".
  */
 export default function InvoiceAttachmentViewer({
   uri,
+  title = "Invoice attachment",
   onClose,
 }: {
   uri: string | null;
+  title?: string;
   onClose: () => void;
 }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [pdfFailed, setPdfFailed] = useState(false);
+  const [localPath, setLocalPath] = useState<string | null>(null);
+  const [preparing, setPreparing] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   const fileName = useMemo(() => (uri ? fileNameFrom(uri) : ""), [uri]);
   const pdf = Boolean(uri && isPdf(uri));
 
-  const download = async () => {
+  // Fetch the PDF once per attachment. Images are left to <Image>, which loads
+  // remote URLs perfectly well on both platforms.
+  useEffect(() => {
+    if (!uri || !pdf || !PdfView) return;
+    if (!isRemote(uri)) {
+      setLocalPath(uri);
+      return;
+    }
+
+    let alive = true;
+    setPreparing(true);
+    setPdfError(null);
+    setLocalPath(null);
+
+    (async () => {
+      try {
+        const target = `${FileSystem.cacheDirectory}${cacheNameFor(uri)}`;
+        const existing = await FileSystem.getInfoAsync(target);
+        if (existing.exists && (existing.size ?? 0) > 0) {
+          if (alive) setLocalPath(target);
+          return;
+        }
+        const result = await FileSystem.downloadAsync(uri, target);
+        if (result.status !== 200) throw new Error(`Server returned ${result.status}`);
+        if (alive) setLocalPath(result.uri);
+      } catch (error) {
+        if (alive) setPdfError(errorText(error));
+      } finally {
+        if (alive) setPreparing(false);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [uri, pdf]);
+
+  const download = useCallback(async () => {
     if (!uri || saving) return;
     setSaving(true);
     setMessage(null);
 
     // Fetching and then keeping the file are reported separately, so a share sheet
     // the customer dismissed never reads as a failed download.
-    let localUri: string;
+    let downloadedUri: string;
     try {
       const target = `${FileSystem.documentDirectory}${fileName}`;
       const result = await FileSystem.downloadAsync(uri, target);
       if (result.status !== 200) throw new Error(`Server returned ${result.status}`);
-      localUri = result.uri;
+      downloadedUri = result.uri;
     } catch (error) {
-      setMessage(`Download failed: ${(error as Error)?.message ?? "please try again"}`);
+      setMessage(`Download failed: ${errorText(error)}`);
       setSaving(false);
       return;
     }
@@ -91,7 +154,7 @@ export default function InvoiceAttachmentViewer({
           return;
         }
 
-        const base64 = await FileSystem.readAsStringAsync(localUri, {
+        const base64 = await FileSystem.readAsStringAsync(downloadedUri, {
           encoding: FileSystem.EncodingType.Base64,
         });
         const saved = await FileSystem.StorageAccessFramework.createFileAsync(
@@ -107,20 +170,25 @@ export default function InvoiceAttachmentViewer({
       }
 
       // iOS presents its own sheet over the app, with Save to Files and Photos.
-      await Share.share({ url: localUri });
+      await Share.share({ url: downloadedUri });
       setMessage("Downloaded.");
     } catch (error) {
-      setMessage(`Downloaded, but saving failed: ${(error as Error)?.message ?? "please try again"}`);
+      setMessage(`Downloaded, but saving failed: ${errorText(error)}`);
     } finally {
       setSaving(false);
     }
-  };
+  }, [uri, saving, fileName]);
 
   const close = () => {
     setMessage(null);
-    setPdfFailed(false);
+    setPdfError(null);
+    setLocalPath(null);
     onClose();
   };
+
+  const showViewer = Boolean(uri && pdf && PdfView && localPath && !pdfError);
+  const showSpinner = Boolean(uri && pdf && PdfView && preparing && !pdfError);
+  const showPdfCard = Boolean(uri && pdf && !showViewer && !showSpinner);
 
   return (
     <Modal visible={Boolean(uri)} transparent animationType="fade" onRequestClose={close}>
@@ -128,7 +196,9 @@ export default function InvoiceAttachmentViewer({
         <Pressable style={styles.dismissArea} onPress={close} />
         <View style={styles.card}>
           <View style={styles.header}>
-            <Text style={styles.title}>Invoice attachment</Text>
+            <Text style={styles.title} numberOfLines={1}>
+              {title}
+            </Text>
             <Pressable accessibilityLabel="Close attachment" onPress={close} style={styles.closeIcon}>
               <Text style={styles.closeIconText}>×</Text>
             </Pressable>
@@ -136,22 +206,36 @@ export default function InvoiceAttachmentViewer({
 
           {uri && !pdf ? <Image source={{ uri }} resizeMode="contain" style={styles.image} /> : null}
 
-          {uri && pdf && PdfView && !pdfFailed ? (
+          {showSpinner ? (
+            <View style={[styles.image, styles.pdfCard]}>
+              <ActivityIndicator color={colors.primary} size="large" />
+              <Text style={styles.pdfHint}>Opening document…</Text>
+            </View>
+          ) : null}
+
+          {showViewer && PdfView ? (
             <PdfView
-              source={{ uri, cache: true }}
+              source={{ uri: localPath as string, cache: false }}
               style={styles.image}
-              trustAllCerts={false}
-              onError={() => setPdfFailed(true)}
+              // The file is already on the device, so nothing here reaches the
+              // network and a certificate setting would have nothing to check.
+              onError={(error: unknown) => setPdfError(errorText(error))}
             />
           ) : null}
 
-          {uri && pdf && (!PdfView || pdfFailed) ? (
+          {showPdfCard ? (
             <View style={[styles.image, styles.pdfCard]}>
               <Text style={styles.pdfBadge}>PDF</Text>
               <Text style={styles.pdfName} numberOfLines={2}>
                 {fileName}
               </Text>
-              <Text style={styles.pdfHint}>Preview is not available. Download the file to open it.</Text>
+              <Text style={styles.pdfHint}>
+                {!PdfView
+                  ? "This version of the app cannot preview PDFs. Download the file to open it."
+                  : pdfError
+                    ? `Preview failed: ${pdfError}`
+                    : "Preview is not available. Download the file to open it."}
+              </Text>
             </View>
           ) : null}
 
@@ -196,7 +280,7 @@ const styles = StyleSheet.create({
     paddingLeft: 5,
     marginBottom: 10,
   },
-  title: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 17 },
+  title: { flex: 1, fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 17 },
   closeIcon: {
     width: 40,
     height: 40,
@@ -206,8 +290,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   closeIconText: { color: colors.navy, fontSize: 28, lineHeight: 30 },
-  image: { width: "100%", height: 480, maxHeight: "72%", borderRadius: 16, backgroundColor: "#f3f6fa" },
-  pdfCard: { height: 220, alignItems: "center", justifyContent: "center", gap: 7 },
+  image: { width: "100%", height: 480, borderRadius: 16, backgroundColor: "#f3f6fa" },
+  pdfCard: { height: 220, alignItems: "center", justifyContent: "center", gap: 9 },
   pdfBadge: {
     fontFamily: jakarta.extraBold,
     color: colors.primary,
@@ -215,7 +299,7 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   pdfName: { fontFamily: jakarta.bold, color: colors.navy, fontSize: 13, paddingHorizontal: 20, textAlign: "center" },
-  pdfHint: { fontFamily: jakarta.medium, color: "#8490a1", fontSize: 11 },
+  pdfHint: { fontFamily: jakarta.medium, color: "#8490a1", fontSize: 11, paddingHorizontal: 20, textAlign: "center" },
   message: { fontFamily: jakarta.medium, color: "#64748b", fontSize: 12, marginTop: 11, textAlign: "center" },
   downloadButton: {
     height: 50,

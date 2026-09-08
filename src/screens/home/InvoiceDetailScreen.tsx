@@ -36,6 +36,7 @@ export default function InvoiceDetailScreen({ invoiceId, onBack }: { invoiceId: 
         <Detail label="Invoice value" value={invoice.amountDisplay} />
         <Detail label="Invoice date" value={invoice.invoiceDate || invoice.displayDate} />
         <Detail label="Scheme" value={[invoice.schemeName, invoice.schemeCode].filter(Boolean).join(" · ") || "—"} />
+        {invoice.schemeNote ? <Text style={s.schemeNote}>{invoice.schemeNote}</Text> : null}
         <Detail label="Slab" value={invoice.tierName || "Not reached"} />
         <Detail label="Reward" value={rejected ? "No reward earned (Rejected)" : pending ? `${invoice.expectedRewardDisplay} (Awaiting Approval)` : invoice.rewardAmount > 0 ? invoice.rewardDisplay : "No reward earned"} />
         {invoice.hint ? <Detail label="Next slab" value={invoice.hint} /> : null}
@@ -60,6 +61,8 @@ const s = StyleSheet.create({
   rejectedCard: { backgroundColor: "#fff0f1" },
   statusTitle: { color: "#143053", fontSize: 17, fontWeight: "900" },
   statusSub: { color: "#64748b", fontSize: 12, marginTop: 5, fontWeight: "700" },
+  // The scheme note, directly under the Scheme row it belongs to.
+  schemeNote: { color: "#64748b", fontSize: 11.5, lineHeight: 16, marginTop: -4, marginBottom: 8 },
   card: { backgroundColor: "#fff", borderRadius: 17, padding: 16, borderWidth: 1, borderColor: "#e7edf5" },
   sectionTitle: { color: "#142744", fontSize: 15, fontWeight: "900", marginBottom: 7 },
   detailRow: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#edf1f5" },

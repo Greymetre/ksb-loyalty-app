@@ -35,6 +35,11 @@ export const normalizeScheme = (raw: any): SchemeInfo => {
     name: String(firstDefined(raw?.scheme_name, raw?.schemeName, raw?.name, scheme?.scheme_name, scheme?.schemeName, scheme?.name) ?? "Scheme"),
     code: firstDefined(raw?.scheme_code, raw?.schemeCode, scheme?.scheme_code, scheme?.schemeCode) as string | undefined,
     description: firstDefined(raw?.scheme_description, raw?.schemeDescription, scheme?.scheme_description, scheme?.schemeDescription, scheme?.description) as string | undefined,
+    note: firstDefined(raw?.scheme_note, raw?.schemeNote, scheme?.scheme_note, scheme?.schemeNote) as string | undefined,
+    // An older server sends neither field; everything it sends is still running,
+    // so treating a missing value as live keeps those builds reading correctly.
+    isLive: firstDefined(raw?.is_live, raw?.isLive, scheme?.is_live, scheme?.isLive) !== false,
+    statusLabel: firstDefined(raw?.status_label, raw?.statusLabel, scheme?.status_label, scheme?.statusLabel) as string | undefined,
     tag: firstDefined(
       raw?.scheme_tag, raw?.schemeTag, raw?.wallet_type, raw?.walletType, raw?.type,
       scheme?.scheme_tag, scheme?.schemeTag, scheme?.wallet_type, scheme?.walletType, scheme?.type

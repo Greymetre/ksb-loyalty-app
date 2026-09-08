@@ -150,7 +150,7 @@ export const registrationApi = {
       profession: isInfluencer ? payload.customerType : undefined,
       gst_number: payload.gstNumber,
       device_type: Platform.OS,
-      device_name: DEVICE_NAME || "Vriddhi KSB",
+      device_name: DEVICE_NAME || "KSB-VRiDDHi",
       unique_id: (await getDeviceId()) || undefined,
       app_version: INSTALLED_APP_VERSION || undefined
     });

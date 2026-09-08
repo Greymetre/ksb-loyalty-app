@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { DealerSchemeDetail, dealerSchemeDetailApi } from "@/services/dealerSchemeApi";
+import { apiFileUrl } from "@/services/apiClient";
+import InvoiceAttachmentViewer from "@/components/InvoiceAttachmentViewer";
 import { colors } from "@/constants/colors";
 
 const money = (value: number) =>
@@ -21,6 +23,9 @@ export default function DealerSchemeDetailScreen({ schemeId, onBack }: { schemeI
   const [detail, setDetail] = useState<DealerSchemeDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // The brochure opens in the same popup the retailer side uses, rather than
+  // handing the dealer off to a browser.
+  const [previewUri, setPreviewUri] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -83,12 +88,19 @@ export default function DealerSchemeDetailScreen({ schemeId, onBack }: { schemeI
               {formatDate(detail.startDate)} — {formatDate(detail.endDate)}
               {detail.isLive && detail.daysRemaining > 0 ? `  ·  ${detail.daysRemaining} days left` : ""}
             </Text>
+            {detail.note ? <Text style={s.heroNote}>{detail.note}</Text> : null}
             <View style={s.tagRow}>
               <Text style={s.tag}>{detail.tag}</Text>
-              <Text style={s.tag}>{detail.basedOn === "Percentage" ? "% based" : "Value based"}</Text>
+              <Text style={s.tag}>{detail.basedOn === "Value + Percentage" ? "Value & % based" : detail.basedOn === "Percentage" ? "% based" : "Value based"}</Text>
               <Text style={s.tag}>{detail.areaScope}</Text>
             </View>
           </View>
+
+          {detail.brochurePath ? (
+            <Pressable style={s.brochure} onPress={() => setPreviewUri(apiFileUrl(detail.brochurePath))}>
+              <Text style={s.brochureText}>View / Download Scheme PDF</Text>
+            </Pressable>
+          ) : null}
 
           <View style={s.grid}>
             <Stat label="SCHEME RETAILERS" value={String(detail.summary.schemeRetailers)} hint="With invoices" />
@@ -122,7 +134,7 @@ export default function DealerSchemeDetailScreen({ schemeId, onBack }: { schemeI
                     </Text>
                   </View>
                   <Text style={s.slabReward}>
-                    {detail.basedOn === "Percentage" ? `${slab.rewardValue}%` : money(slab.rewardValue)}
+                    {slab.rewardLabel || (detail.basedOn === "Percentage" ? `${slab.rewardValue}%` : money(slab.rewardValue))}
                   </Text>
                 </View>
               ))}
@@ -159,6 +171,8 @@ export default function DealerSchemeDetailScreen({ schemeId, onBack }: { schemeI
           </View>
         </ScrollView>
       )}
+
+      <InvoiceAttachmentViewer uri={previewUri} title="Scheme brochure" onClose={() => setPreviewUri(null)} />
     </View>
   );
 }
@@ -192,6 +206,8 @@ const s = StyleSheet.create({
   heroCode: { fontSize: 11, color: colors.muted, marginTop: 4 },
   heroDesc: { fontSize: 12, color: colors.muted, marginTop: 8, lineHeight: 17 },
   heroDates: { fontSize: 12, color: colors.navy, marginTop: 10, fontWeight: "600" },
+  // The scheme note, directly under the dates.
+  heroNote: { fontSize: 12, color: "#475569", marginTop: 6, lineHeight: 17 },
   tagRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 12 },
   tag: { fontSize: 10, fontWeight: "700", color: colors.primary, backgroundColor: "#faf0dd", borderRadius: 99, paddingHorizontal: 9, paddingVertical: 4 },
   pill: { borderRadius: 99, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 4 },
@@ -213,6 +229,8 @@ const s = StyleSheet.create({
   expectedValue: { color: "#a96810" },
   pointsHint: { fontSize: 10, color: colors.muted, marginTop: 4 },
 
+  brochure: { backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 14, alignItems: "center" },
+  brochureText: { color: "#fff", fontWeight: "800", fontSize: 13 },
   section: { backgroundColor: "#fff", borderRadius: 18, borderWidth: 1, borderColor: "#dce7f0", padding: 14, gap: 10 },
   sectionTitle: { fontWeight: "700", fontSize: 14, color: colors.navy },
 

@@ -158,6 +158,12 @@ export default function SchemeSlider({ onOpen }: { onOpen?: (schemeId: number) =
                   ) : null}
                 </View>
 
+                {item.note ? (
+                  <Text style={[styles.note, inkSoft]} numberOfLines={3}>
+                    {item.note}
+                  </Text>
+                ) : null}
+
                 <View style={[styles.cta, dark ? styles.ctaDark : styles.ctaLight]}>
                   <Text style={[styles.ctaText, ink]}>View details  →</Text>
                 </View>
@@ -223,6 +229,8 @@ const styles = StyleSheet.create({
 
   name: { fontWeight: "800", fontSize: 21, marginTop: 12, lineHeight: 27 },
   code: { fontSize: 11, fontWeight: "600", marginTop: 4 },
+  // The scheme note, below the validity row and above the call to action.
+  note: { fontSize: 11.5, lineHeight: 16, marginTop: 10 },
 
   footer: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", marginTop: 14 },
   metaLabel: { fontSize: 9, fontWeight: "800", letterSpacing: 1 },

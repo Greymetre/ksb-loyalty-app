@@ -23,7 +23,7 @@ export default function ForceUpdateScreen() {
         <View style={s.logo}><KsbLogo size={58} /></View>
         <Text style={s.title}>Update required</Text>
         <Text style={s.text}>
-          A newer version of Vriddhi KSB is available. Please update to continue - this version is no longer supported.
+          A newer version of KSB-VRiDDHi is available. Please update to continue - this version is no longer supported.
         </Text>
         {INSTALLED_APP_VERSION ? <Text style={s.version}>Installed version {INSTALLED_APP_VERSION}</Text> : null}
         <View style={s.action}><AppButton title="Update now" onPress={openStore} tone="navy" /></View>

@@ -121,6 +121,12 @@ export type SchemeInfo = {
   daysLeft: number;
   code?: string;
   description?: string;
+  /** A couple of lines from the scheme creator, shown under the dates. */
+  note?: string;
+  /** Where the scheme sits against today. An ended scheme is still listed, so the
+   *  retailer can look back at what was billed under it. */
+  isLive?: boolean;
+  statusLabel?: string;
   tag?: string;
   basedOn?: string;
   startDate?: string;

@@ -7,7 +7,7 @@ export type DealerInvoiceItem = {
   id: string; retailerId: number; schemeId: number | null; retailerName: string; invoiceNumber: string;
   invoiceDate: string; displayDate: string; amount: number; rewardAmount: number; expectedRewardAmount: number;
   status: DealerInvoiceStatus; statusLabel: string; canEdit: boolean; canDelete: boolean;
-  ownerName: string; shopName: string; retailerCode: string; mobile: string; schemeName: string;
+  ownerName: string; shopName: string; retailerCode: string; mobile: string; schemeName: string; schemeNote: string;
   /** First file, kept for older screens; the full set is in `attachments`. */
   attachment: string;
   attachments: DealerInvoiceAttachment[];
@@ -57,7 +57,7 @@ const normalizeItem = (raw: any): DealerInvoiceItem => {
   retailerCode: String(raw?.retailer_code ?? raw?.retailerCode ?? ""), mobile: String(raw?.mobile_number ?? raw?.mobileNumber ?? ""),
   invoiceDate: String(raw?.invoice_date ?? raw?.invoiceDate ?? ""), displayDate: String(raw?.display_date ?? raw?.displayDate ?? raw?.invoice_date ?? raw?.invoiceDate ?? ""),
   amount: n(raw?.amount), rewardAmount: n(raw?.reward_amount ?? raw?.rewardAmount), expectedRewardAmount: n(raw?.expected_reward_amount ?? raw?.expectedRewardAmount),
-  schemeName: String(raw?.scheme_name ?? raw?.schemeName ?? ""), attachment: apiFileUrl(String(raw?.attachment_url ?? raw?.attachmentUrl ?? raw?.attachment ?? "")),
+  schemeName: String(raw?.scheme_name ?? raw?.schemeName ?? ""), schemeNote: String(raw?.scheme_note ?? raw?.schemeNote ?? ""), attachment: apiFileUrl(String(raw?.attachment_url ?? raw?.attachmentUrl ?? raw?.attachment ?? "")),
   attachments: normalizeAttachments(raw),
   status: normalizedStatus, statusLabel: normalizedStatus === "approved" ? "Approved" : normalizedStatus === "rejected" ? "Rejected" : normalizedStatus === "hold" ? "Hold" : normalizedStatus === "in_process" ? "In Process" : "Pending",
   canEdit: Boolean(raw?.can_edit ?? raw?.canEdit), canDelete: Boolean(raw?.can_delete ?? raw?.canDelete),

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Vriddhi KSB",
+    "name": "KSB-VRiDDHi",
     "slug": "ksb-retailer-app",
     "version": "2.3",
     "orientation": "portrait",
@@ -40,8 +40,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Vriddhi KSB uses photo library access so you can select GST, PAN, Aadhaar and bank proof images for KYC verification.",
-          "cameraPermission": "Vriddhi KSB uses the camera to capture GST, PAN, Aadhaar and bank proof documents for KYC verification."
+          "photosPermission": "KSB-VRiDDHi uses photo library access so you can select GST, PAN, Aadhaar and bank proof images for KYC verification.",
+          "cameraPermission": "KSB-VRiDDHi uses the camera to capture GST, PAN, Aadhaar and bank proof documents for KYC verification."
         }
       ],
       "expo-asset",

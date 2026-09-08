@@ -81,6 +81,7 @@ export type InvoiceDetail = InvoiceListItem & {
   invoiceDate?: string;
   schemeName?: string;
   schemeCode?: string;
+  schemeNote?: string;
   tierName?: string;
   hint?: string;
   createdAt?: string;
@@ -221,6 +222,7 @@ const normalizeDetail = (raw: any): InvoiceDetail => {
     invoiceDate: source?.invoice_date ?? source?.invoiceDate,
     schemeName: source?.scheme_name ?? source?.schemeName,
     schemeCode: source?.scheme_code ?? source?.schemeCode,
+    schemeNote: source?.scheme_note ?? source?.schemeNote,
     tierName: source?.tier_name ?? source?.tierName,
     hint: source?.scheme_hint_message ?? source?.schemeHintMessage,
     createdAt: source?.created_at ?? source?.createdAt,

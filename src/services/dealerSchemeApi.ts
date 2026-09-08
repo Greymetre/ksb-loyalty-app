@@ -15,6 +15,10 @@ export type DealerScheme = {
   isLive: boolean;
   daysRemaining: number;
   areaScope: string;
+  /** The scheme brochure the CRM uploaded, if there is one. */
+  brochurePath: string;
+  /** A couple of lines from the scheme creator, shown under the dates. */
+  note: string;
 };
 
 const numberOr = (value: unknown) => {
@@ -46,6 +50,8 @@ export const dealerSchemeApi = {
         isLive: Boolean(row?.is_live ?? row?.isLive ?? status === "live"),
         daysRemaining: numberOr(row?.days_remaining ?? row?.daysRemaining),
         areaScope: String(row?.area_scope ?? row?.areaScope ?? "All"),
+        brochurePath: String(row?.brochure_path ?? row?.brochurePath ?? ""),
+        note: String(row?.scheme_note ?? row?.schemeNote ?? ""),
       };
     });
   },
@@ -66,6 +72,7 @@ export type DealerSchemeSlab = {
   valueFrom: number;
   valueTo: number | null;
   rewardValue: number;
+  rewardLabel: string;
 };
 
 export type DealerSchemeDetail = DealerScheme & {
@@ -106,6 +113,8 @@ export const dealerSchemeDetailApi = {
       isLive: Boolean(row?.is_live),
       daysRemaining: numberOr(row?.days_remaining),
       areaScope: String(row?.area_scope ?? "All"),
+      brochurePath: String(row?.brochure_path ?? row?.brochurePath ?? ""),
+      note: String(row?.scheme_note ?? row?.schemeNote ?? ""),
       description: String(row?.scheme_description ?? ""),
       basedOn: String(row?.based_on ?? "Value"),
       summary: {
@@ -125,6 +134,9 @@ export const dealerSchemeDetailApi = {
         valueFrom: numberOr(x?.value_from),
         valueTo: x?.value_to === null || x?.value_to === undefined ? null : numberOr(x.value_to),
         rewardValue: numberOr(x?.reward_value),
+        // The server works out what this slab pays; a mixed scheme decides per
+        // slab, so the label cannot be built from the scheme alone any more.
+        rewardLabel: String(x?.reward_label ?? ""),
       })),
       retailers: (Array.isArray(row?.retailers) ? row.retailers : []).map((x: any): DealerSchemeRetailer => ({
         retailerId: numberOr(x?.retailer_id),
