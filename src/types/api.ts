@@ -54,6 +54,9 @@ export type SchemeTier = {
   amount: number;
   label: string;
   rewardLabel?: string;
+  /** Value or Percentage, for this slab. A mixed scheme decides per slab, so the
+   *  scheme's own Based On cannot answer it. */
+  rewardType?: string;
   walletType?: "regular" | "booster";
   rate?: number;
   valueFrom?: number;

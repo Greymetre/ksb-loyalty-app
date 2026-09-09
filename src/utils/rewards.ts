@@ -13,6 +13,22 @@ export const formatTierLabel = (tier: SchemeTier) => tier.label || moneyInLakh(t
 
 export const formatRewardLabel = (tier: SchemeTier) => tier.rewardLabel || (tier.rate ? formatPercent(tier.rate) : formatTierLabel(tier));
 
+/**
+ * What one slab pays, for a server that does not write it out itself.
+ *
+ * The type has to match exactly. A server that predates the per-slab type sends the
+ * scheme's own Based On, and on a mixed scheme that reads "Value + Percentage" - a
+ * "does it contain the word percent" test says yes for every slab and turns a
+ * Rs. 1400 gift into 1400%. When the type cannot decide, the figure is shown bare:
+ * no unit reads better than the wrong one.
+ */
+export const slabRewardText = (value: number, type?: string | null, moneyText?: (value: number) => string) => {
+  const kind = (type || "").trim().toLowerCase();
+  if (kind === "percentage") return `${value}%`;
+  if (kind === "value + percentage") return String(value);
+  return moneyText ? moneyText(value) : String(value);
+};
+
 export const isTierActive = (tier: SchemeTier, invoiceValue: number) =>
   tier.amount === 0 || Boolean(tier.achieved || tier.current) || invoiceValue >= getTierThreshold(tier);
 

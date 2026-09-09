@@ -4,6 +4,7 @@ import { DealerSchemeDetail, dealerSchemeDetailApi } from "@/services/dealerSche
 import { apiFileUrl } from "@/services/apiClient";
 import InvoiceAttachmentViewer from "@/components/InvoiceAttachmentViewer";
 import { colors } from "@/constants/colors";
+import { slabRewardText } from "@/utils/rewards";
 
 const money = (value: number) =>
   `₹${Number(value || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
@@ -134,7 +135,7 @@ export default function DealerSchemeDetailScreen({ schemeId, onBack }: { schemeI
                     </Text>
                   </View>
                   <Text style={s.slabReward}>
-                    {slab.rewardLabel || (detail.basedOn === "Percentage" ? `${slab.rewardValue}%` : money(slab.rewardValue))}
+                    {slab.rewardLabel || slabRewardText(slab.rewardValue, slab.rewardType || detail.basedOn, money)}
                   </Text>
                 </View>
               ))}

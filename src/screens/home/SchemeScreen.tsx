@@ -12,6 +12,7 @@ import { Route } from "@/navigation/routes";
 import { schemeApi } from "@/services/schemeApi";
 import { apiFileUrl } from "@/services/apiClient";
 import { SchemeInfo } from "@/types/api";
+import { slabRewardText } from "@/utils/rewards";
 import { styles } from "@/styles/appStyles";
 
 type SchemeScreenProps = {
@@ -74,7 +75,7 @@ export default function SchemeScreen({ go, selectedScheme, dashboardSchemes }: S
           </GradientCard>
           {scheme.description ? <Text style={localStyles.description}>{scheme.description}</Text> : null}
           <Text style={styles.sectionTitle}>Slabs & Reward Rules</Text>
-          {scheme.tiers.map((tier, index) => <ActivityRow key={`${scheme.id}-${tier.valueFrom}-${index}`} text={`${tier.tierName || `Slab ${index + 1}`}: ₹${tier.valueFrom?.toLocaleString("en-IN")} - ${tier.valueTo == null ? "Above" : `₹${tier.valueTo.toLocaleString("en-IN")}`} · ${tier.rewardLabel || `${tier.rate || 0}${scheme.basedOn === "Percentage" ? "%" : ""}`}`} accent={String(tier.tierName ?? index + 1).trim() === String(scheme.currentSlab ?? "").trim()} />)}
+          {scheme.tiers.map((tier, index) => <ActivityRow key={`${scheme.id}-${tier.valueFrom}-${index}`} text={`${tier.tierName || `Slab ${index + 1}`}: ₹${tier.valueFrom?.toLocaleString("en-IN")} - ${tier.valueTo == null ? "Above" : `₹${tier.valueTo.toLocaleString("en-IN")}`} · ${tier.rewardLabel || slabRewardText(tier.rate || 0, tier.rewardType ?? scheme.basedOn)}`} accent={String(tier.tierName ?? index + 1).trim() === String(scheme.currentSlab ?? "").trim()} />)}
           <View style={localStyles.progressBox}>
             <Text style={localStyles.progressTitle}>Your progress</Text>
             <Text style={localStyles.progressText}>Achievement: ₹{scheme.achievementValue.toLocaleString("en-IN")}</Text>

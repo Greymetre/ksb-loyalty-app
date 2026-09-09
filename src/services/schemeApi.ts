@@ -15,6 +15,7 @@ export const normalizeScheme = (raw: any): SchemeInfo => {
     valueTo: firstDefined(tier?.value_to, tier?.valueTo) == null ? null : numberOr(firstDefined(tier?.value_to, tier?.valueTo)),
     rate: numberOr(tier?.reward_value ?? tier?.rewardValue),
     rewardLabel: tier?.reward_label ?? tier?.rewardLabel,
+    rewardType: tier?.reward_type ?? tier?.rewardType,
     label: tier?.tier_name ?? tier?.tierName ?? "Slab",
     tierName: tier?.tier_name ?? tier?.tierName
   })).sort((a: SchemeTier, b: SchemeTier) => (a.valueFrom ?? a.amount) - (b.valueFrom ?? b.amount));

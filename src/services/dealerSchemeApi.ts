@@ -73,6 +73,8 @@ export type DealerSchemeSlab = {
   valueTo: number | null;
   rewardValue: number;
   rewardLabel: string;
+  /** Value or Percentage, for this slab - a mixed scheme decides per slab. */
+  rewardType: string;
 };
 
 export type DealerSchemeDetail = DealerScheme & {
@@ -137,6 +139,7 @@ export const dealerSchemeDetailApi = {
         // The server works out what this slab pays; a mixed scheme decides per
         // slab, so the label cannot be built from the scheme alone any more.
         rewardLabel: String(x?.reward_label ?? ""),
+        rewardType: String(x?.reward_type ?? ""),
       })),
       retailers: (Array.isArray(row?.retailers) ? row.retailers : []).map((x: any): DealerSchemeRetailer => ({
         retailerId: numberOr(x?.retailer_id),
