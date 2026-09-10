@@ -2,7 +2,7 @@
   "expo": {
     "name": "KSB-VRiDDHi",
     "slug": "ksb-retailer-app",
-    "version": "2.4",
+    "version": "2.5",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "splash": {
@@ -29,7 +29,7 @@
       "permissions": [
         "CAMERA"
       ],
-      "versionCode": 11,
+      "versionCode": 12,
       "icon": "./assets/icon.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
