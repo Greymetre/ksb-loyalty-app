@@ -1,3 +1,4 @@
+import { KycStage, KycStageSummary, isKycStage, kycStageInfo, readKycSummary } from "./kycStages";
 import { apiClient } from "./apiClient";
 
 export type DealerRetailerListItem = {
@@ -9,6 +10,8 @@ export type DealerRetailerListItem = {
   beatName: string;
   kycStatus: "verified" | "pending";
   kycStatusLabel: string;
+  kycStage: KycStage;
+  kycStageLabel: string;
   rewardPoints: number;
   invoiceCount: number;
   isActive: boolean;
@@ -23,6 +26,7 @@ export type DealerRetailerList = {
     totalRetailers: number;
     activeRetailers: number;
     pendingKycRetailers: number;
+    kycSummary: KycStageSummary;
   };
 };
 
@@ -31,7 +35,8 @@ const numberOr = (value: unknown) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-export type DealerRetailerFilter = "all" | "pending";
+/** "pending" is the old two-way filter, kept for anything still passing it. */
+export type DealerRetailerFilter = "all" | "pending" | KycStage;
 
 export const dealerRetailerApi = {
   async list(page = 1, search = "", filter: DealerRetailerFilter = "all", activeOnly = false): Promise<DealerRetailerList> {
@@ -41,7 +46,7 @@ export const dealerRetailerApi = {
       // invoice, which is what the dashboard tiles count.
       params: {
         page, page_size: 20, search, include_metrics: true,
-        kyc: filter === "pending" ? "pending" : undefined,
+        kyc: filter === "all" ? undefined : filter,
         active: activeOnly ? true : undefined,
       },
     });
@@ -59,6 +64,9 @@ export const dealerRetailerApi = {
           beatName: String(row?.beat_name ?? row?.beatName ?? ""),
           kycStatus: verified ? "verified" : "pending",
           kycStatusLabel: verified ? "Verified" : "Pending",
+          // A server without stages still says verified or not; everything else reads as not started.
+          kycStage: isKycStage(row?.kyc_stage) ? row.kyc_stage : verified ? "approved" : "none",
+          kycStageLabel: String(row?.kyc_stage_label ?? kycStageInfo(isKycStage(row?.kyc_stage) ? row.kyc_stage : verified ? "approved" : "none").label),
           rewardPoints: numberOr(row?.reward_points ?? row?.rewardPoints),
           invoiceCount: numberOr(row?.invoice_count ?? row?.invoiceCount),
           isActive: Boolean(row?.is_active ?? row?.isActive),
@@ -71,6 +79,7 @@ export const dealerRetailerApi = {
         totalRetailers: numberOr(data?.summary?.total_retailers ?? data?.summary?.totalRetailers),
         activeRetailers: numberOr(data?.summary?.active_retailers ?? data?.summary?.activeRetailers),
         pendingKycRetailers: numberOr(data?.summary?.pending_kyc_retailers ?? data?.summary?.pendingKycRetailers),
+        kycSummary: readKycSummary(data?.summary?.kyc_summary ?? data?.summary?.kycSummary),
       },
     };
   },

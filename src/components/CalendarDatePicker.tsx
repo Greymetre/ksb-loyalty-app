@@ -95,7 +95,7 @@ export function CalendarDatePicker({ visible, title, value, minDate, maxDate, on
       {/* Tapping the dim area closes; the inner Pressable swallows taps so a tap on
           the calendar itself never reaches the backdrop. */}
       <Pressable style={styles.sheetOverlay} onPress={onClose}>
-        <Pressable onPress={() => {}} style={[styles.sheetWrap, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        <Pressable onPress={() => {}} style={[styles.sheetWrap, { paddingBottom: insets.bottom + 16 }]}>
           {body}
         </Pressable>
       </Pressable>

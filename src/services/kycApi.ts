@@ -48,6 +48,8 @@ export type KycDetails = {
   ifscCode: string;
   accountHolderName: string;
   documents: KycDocument[];
+  // Not a KYC document: shown and replaced here, never reviewed.
+  shopImageUrl: string;
 };
 
 export type KycUpdatePayload = KycDetails & {
@@ -64,7 +66,8 @@ const emptyKyc: KycDetails = {
   bankAccountNumber: "",
   ifscCode: "",
   accountHolderName: "",
-  documents: []
+  documents: [],
+  shopImageUrl: ""
 };
 
 const sourceOf = (raw: any) => raw?.data?.kyc || raw?.data || raw?.kyc || raw || {};
@@ -185,6 +188,7 @@ const normalizeKyc = (raw: any): KycDetails => {
         detailValue(bankDoc, "account_holder_name") ??
         ""
     ),
+    shopImageUrl: absoluteUrl(source.shop_image?.url ?? (typeof source.shop_image === "string" ? source.shop_image : "")),
     documents: [
       normalizeDoc("gst", gstDoc || source.gst || source.gst_document, gstNumber),
       normalizeDoc("pan", panDoc || source.pan || source.pan_document, panNumber),
@@ -228,6 +232,16 @@ export const kycApi = {
     appendFile(form, "aadhar_attachment", payload.files?.aadhar);
     appendFile(form, "bank_proof", payload.files?.bank);
 
+    const { data } = await apiClient.put(kycPath(retailerId), form, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+    return normalizeKyc(data);
+  },
+  // Sends the shop image on its own. With no other field in the form the server
+  // changes nothing else, so no document goes back for review.
+  async updateShopImage(file: KycFile, retailerId?: number) {
+    const form = new FormData();
+    appendFile(form, "shop_image", file);
     const { data } = await apiClient.put(kycPath(retailerId), form, {
       headers: { "Content-Type": "multipart/form-data" }
     });

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { CalendarDatePicker } from "../../components/CalendarDatePicker";
 import { colors } from "../../constants/colors";
@@ -18,6 +19,7 @@ import InvoiceAttachmentViewer from "@/components/InvoiceAttachmentViewer";
 
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 export default function DealerNewInvoiceScreen({ onBack, onCreated, invoice: initialInvoice }: { onBack: () => void; onCreated: () => void; invoice?: DealerInvoiceItem | null }) {
+  const insets = useSafeAreaInsets();
   const editing = Boolean(initialInvoice);
   const [retailers, setRetailers] = useState<DealerRetailer[]>([]); const [retailer, setRetailer] = useState<DealerRetailer | null>(initialInvoice ? { id: initialInvoice.retailerId, code: initialInvoice.retailerCode, name: initialInvoice.ownerName || initialInvoice.retailerName, ownerName: initialInvoice.ownerName || initialInvoice.retailerName, shopName: initialInvoice.shopName || initialInvoice.retailerName, mobile: initialInvoice.mobile } : null);
   const [schemes, setSchemes] = useState<DealerScheme[]>([]); const [scheme, setScheme] = useState<DealerScheme | null>(null);
@@ -112,7 +114,7 @@ export default function DealerNewInvoiceScreen({ onBack, onCreated, invoice: ini
       <Pressable style={[s.submit, saving && s.disabled]} disabled={saving} onPress={submit}>{saving ? <ActivityIndicator color="#fff" /> : <Text style={s.submitText}>{editing ? "UPDATE INVOICE" : "SUBMIT INVOICE"}</Text>}</Pressable>
     </ScrollView>
     <CalendarDatePicker asSheet visible={calendar} title="Invoice date" value={invoiceDate} maxDate={today()} onSelect={v => { setInvoiceDate(v); setCalendar(false); }} onClose={() => setCalendar(false)} />
-    <Modal visible={!!picker} transparent animationType="fade" onRequestClose={() => setPicker(null)}><Pressable style={s.overlay} onPress={() => setPicker(null)}><Pressable style={s.sheet}>
+    <Modal visible={!!picker} transparent animationType="fade" onRequestClose={() => setPicker(null)}><Pressable style={s.overlay} onPress={() => setPicker(null)}><Pressable style={[s.sheet, { paddingBottom: 20 + insets.bottom }]}>
       <View style={s.sheetHead}><Text style={s.sheetTitle}>{picker === "retailer" ? "Select retailer" : "Select scheme"}</Text><Pressable onPress={() => setPicker(null)}><Text style={s.close}>×</Text></Pressable></View>
       {picker === "retailer" ? <TextInput value={search} onChangeText={setSearch} placeholder="Search name, shop, code or mobile" style={s.search} /> : null}
       <ScrollView keyboardShouldPersistTaps="handled">{(picker === "retailer" ? filtered : schemes).map((x: any) => <Pressable key={x.id} style={s.option} onPress={() => { if (picker === "retailer") setRetailer(x); else setScheme(x); setPicker(null); setSearch(""); }}><Text style={s.optionTitle}>{picker === "retailer" ? x.shopName : x.name}</Text><Text style={s.optionMeta}>{picker === "retailer" ? `${x.code} · ${x.name} · ${x.mobile}` : x.code}</Text></Pressable>)}</ScrollView>

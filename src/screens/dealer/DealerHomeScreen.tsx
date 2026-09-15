@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTabBarInsetStyle } from "@/components/home/HomeBottomTabs";
 import VriddhiLogo from "@/components/VriddhiLogo";
 import { KsbLogo } from "../../components/KsbLogo";
 import { colors, gradients } from "../../constants/colors";
 import { DealerDashboardData, dealerDashboardApi } from "../../services/dealerDashboardApi";
+import { KYC_STAGES, emptyKycSummary, kycStageCount } from "../../services/kycStages";
 import { getUser } from "../../services/storage";
 import { signOut } from "../../services/session";
 import { jakarta, styles as appStyles } from "../../styles/appStyles";
@@ -15,12 +17,13 @@ import SchemeSlider from "@/components/home/SchemeSlider";
 import DealerSchemeDetailScreen from "./DealerSchemeDetailScreen";
 import { DealerInvoiceItem } from "../../services/dealerInvoiceApi";
 import DealerRetailersScreen from "./DealerRetailersScreen";
+import { DealerRetailerFilter } from "../../services/dealerRetailerApi";
 import DealerInvoiceDetailsSheet from "./DealerInvoiceDetailsSheet";
 import DealerProfileScreen from "./DealerProfileScreen";
 
 type DealerTab = "Dashboard" | "Invoices" | "New Entry" | "Edit Invoice" | "Scheme Detail" | "Retailers" | "Profile";
 type DealerProfile = { name?: string; owner_name?: string; shop_name?: string; customer_type_name?: string; zone?: string; zone_name?: string; custom_fields?: Record<string, unknown> };
-const emptyDashboard: DealerDashboardData = { assignedRetailers: 0, activeRetailers: 0, pendingKycRetailers: 0, totalInvoices: 0, totalInvoiceAmount: 0, approvedInvoiceAmount: 0, expectedInvoiceAmount: 0, totalRewardEarned: 0, totalExpectedReward: 0, recentInvoices: [] };
+const emptyDashboard: DealerDashboardData = { assignedRetailers: 0, activeRetailers: 0, pendingKycRetailers: 0, kycSummary: emptyKycSummary, totalInvoices: 0, totalInvoiceAmount: 0, approvedInvoiceAmount: 0, expectedInvoiceAmount: 0, totalRewardEarned: 0, totalExpectedReward: 0, recentInvoices: [] };
 const tabs: Array<{ label: DealerTab; icon: string }> = [
   { label: "Dashboard", icon: "🏠" }, { label: "Invoices", icon: "📄" },
   { label: "New Entry", icon: "+" }, { label: "Retailers", icon: "🏪" }, { label: "Profile", icon: "👤" },
@@ -57,7 +60,7 @@ export default function DealerHomeScreen({ onLogout }: { onLogout: () => void })
   const [editingInvoice, setEditingInvoice] = useState<DealerInvoiceItem | null>(null);
   const [selectedSchemeId, setSelectedSchemeId] = useState<number | null>(null);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
-  const [retailerFilter, setRetailerFilter] = useState<"all" | "pending">("all");
+  const [retailerFilter, setRetailerFilter] = useState<DealerRetailerFilter>("all");
   const [retailerActiveOnly, setRetailerActiveOnly] = useState(false);
 
   const loadDashboard = async (refresh = false) => {
@@ -97,15 +100,18 @@ export default function DealerHomeScreen({ onLogout }: { onLogout: () => void })
   const zone = text(fields.zone_name) || text(fields.zone) || text(profile.zone_name) || text(profile.zone);
   const partner = text(profile.customer_type_name) || "Distributor Partner";
   const logout = async () => { if (loggingOut) return; setLoggingOut(true); try { await signOut(); onLogout(); } finally { setLoggingOut(false); } };
+  // The tab bar grows by the system navigation area; the screen gives up the same height
+  // at the bottom so nothing it shows ends up behind the taller bar.
+  const insets = useSafeAreaInsets();
 
-  if (selectedTab === "Invoices") return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}><DealerInvoicesScreen key={`invoices-${tabVisit}`} onBack={() => selectTab("Dashboard")} onNew={() => { setEditingInvoice(null); selectTab("New Entry"); }} onEdit={(invoice) => { setEditingInvoice(invoice); selectTab("Edit Invoice"); }} /><DealerTabs selected={selectedTab} onSelect={selectTab} /></View></SafeAreaView>;
-  if (selectedTab === "New Entry") return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}><DealerNewInvoiceScreen key={`new-entry-${tabVisit}`} onBack={() => selectTab("Dashboard")} onCreated={() => { void loadDashboard(true); selectTab("Invoices"); }} /><DealerTabs selected={selectedTab} onSelect={selectTab} /></View></SafeAreaView>;
-  if (selectedTab === "Scheme Detail" && selectedSchemeId) return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}><DealerSchemeDetailScreen key={`scheme-${selectedSchemeId}-${tabVisit}`} schemeId={selectedSchemeId} onBack={() => { setSelectedSchemeId(null); selectTab("Dashboard"); }} /><DealerTabs selected="Dashboard" onSelect={selectTab} /></View></SafeAreaView>;
-  if (selectedTab === "Edit Invoice" && editingInvoice) return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}><DealerNewInvoiceScreen key={`edit-invoice-${editingInvoice.id}-${tabVisit}`} invoice={editingInvoice} onBack={() => selectTab("Invoices")} onCreated={() => { setEditingInvoice(null); void loadDashboard(true); selectTab("Invoices"); }} /><DealerTabs selected="Invoices" onSelect={selectTab} /></View></SafeAreaView>;
-  if (selectedTab === "Retailers") return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}><DealerRetailersScreen key={`retailers-${retailerFilter}-${retailerActiveOnly}-${tabVisit}`} initialFilter={retailerFilter} initialActiveOnly={retailerActiveOnly} onBack={() => selectTab("Dashboard")} /><DealerTabs selected={selectedTab} onSelect={selectTab} /></View></SafeAreaView>;
-  if (selectedTab === "Profile") return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}><DealerProfileScreen key={`profile-${tabVisit}`} onBack={() => selectTab("Dashboard")} onLogout={onLogout} /><DealerTabs selected={selectedTab} onSelect={selectTab} /></View></SafeAreaView>;
+  if (selectedTab === "Invoices") return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={[local.screen, { paddingBottom: insets.bottom }]}><DealerInvoicesScreen key={`invoices-${tabVisit}`} onBack={() => selectTab("Dashboard")} onNew={() => { setEditingInvoice(null); selectTab("New Entry"); }} onEdit={(invoice) => { setEditingInvoice(invoice); selectTab("Edit Invoice"); }} /><DealerTabs selected={selectedTab} onSelect={selectTab} /></View></SafeAreaView>;
+  if (selectedTab === "New Entry") return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={[local.screen, { paddingBottom: insets.bottom }]}><DealerNewInvoiceScreen key={`new-entry-${tabVisit}`} onBack={() => selectTab("Dashboard")} onCreated={() => { void loadDashboard(true); selectTab("Invoices"); }} /><DealerTabs selected={selectedTab} onSelect={selectTab} /></View></SafeAreaView>;
+  if (selectedTab === "Scheme Detail" && selectedSchemeId) return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={[local.screen, { paddingBottom: insets.bottom }]}><DealerSchemeDetailScreen key={`scheme-${selectedSchemeId}-${tabVisit}`} schemeId={selectedSchemeId} onBack={() => { setSelectedSchemeId(null); selectTab("Dashboard"); }} /><DealerTabs selected="Dashboard" onSelect={selectTab} /></View></SafeAreaView>;
+  if (selectedTab === "Edit Invoice" && editingInvoice) return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={[local.screen, { paddingBottom: insets.bottom }]}><DealerNewInvoiceScreen key={`edit-invoice-${editingInvoice.id}-${tabVisit}`} invoice={editingInvoice} onBack={() => selectTab("Invoices")} onCreated={() => { setEditingInvoice(null); void loadDashboard(true); selectTab("Invoices"); }} /><DealerTabs selected="Invoices" onSelect={selectTab} /></View></SafeAreaView>;
+  if (selectedTab === "Retailers") return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={[local.screen, { paddingBottom: insets.bottom }]}><DealerRetailersScreen key={`retailers-${retailerFilter}-${retailerActiveOnly}-${tabVisit}`} initialFilter={retailerFilter} initialActiveOnly={retailerActiveOnly} onBack={() => selectTab("Dashboard")} /><DealerTabs selected={selectedTab} onSelect={selectTab} /></View></SafeAreaView>;
+  if (selectedTab === "Profile") return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={[local.screen, { paddingBottom: insets.bottom }]}><DealerProfileScreen key={`profile-${tabVisit}`} onBack={() => selectTab("Dashboard")} onLogout={onLogout} /><DealerTabs selected={selectedTab} onSelect={selectTab} /></View></SafeAreaView>;
 
-  return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={local.screen}>
+  return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={[local.screen, { paddingBottom: insets.bottom }]}>
     {/* Above the ScrollView, so it stays put while the page moves under it. Sized to
         the icon buttons either side of it, the same as the retailer home screen. */}
     <View style={appStyles.homeTopBar}>
@@ -138,8 +144,13 @@ export default function DealerHomeScreen({ onLogout }: { onLogout: () => void })
         <View style={local.grid}>
           <Summary icon="🏪" value={`${dashboard.assignedRetailers}`} label="Total retailers" />
           <Summary icon="✅" value={`${dashboard.activeRetailers}`} label="Active retailers" />
-          <Summary icon="📄" value={`${dashboard.totalInvoices}`} label="Invoices uploaded" />
-          <Summary icon="🪪" value={`${dashboard.pendingKycRetailers}`} label="Pending KYC retailers" onPress={() => { setRetailerFilter("pending"); setRetailerActiveOnly(true); setSelectedTab("Retailers"); setTabVisit(visit => visit + 1); }} />
+          <Summary icon="📄" value={`${dashboard.totalInvoices}`} label="Invoices uploaded" wide />
+        </View>
+
+        {/* The CRM's four KYC stages, over every retailer mapped to this dealer. Each opens those retailers. */}
+        <View style={appStyles.walletSectionHead}><Text style={appStyles.walletSectionTitle}>Retailer KYC</Text></View>
+        <View style={local.grid}>
+          {KYC_STAGES.map(stage => <Summary key={stage.key} icon={stage.icon} value={`${kycStageCount(dashboard.kycSummary, stage.key)}`} label={stage.label} onPress={() => { setRetailerFilter(stage.key); setRetailerActiveOnly(false); setSelectedTab("Retailers"); setTabVisit(visit => visit + 1); }} />)}
         </View>
 
         <View style={appStyles.walletSectionHead}><Text style={appStyles.walletSectionTitle}>Recent invoice activity</Text><Pressable onPress={() => selectTab("Invoices")}><Text style={local.link}>View all →</Text></Pressable></View>
@@ -183,12 +194,12 @@ export default function DealerHomeScreen({ onLogout }: { onLogout: () => void })
 }
 
 function Reward({ label, value, meta }: { label: string; value: string; meta: string }) { return <View style={local.reward}><Text style={local.rewardLabel}>{label}</Text><Text style={local.rewardValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{value}</Text><Text style={local.rewardMeta}>{meta}</Text></View>; }
-function Summary({ icon, value, label, onPress }: { icon: string; value: string; label: string; onPress?: () => void }) {
+function Summary({ icon, value, label, onPress, wide }: { icon: string; value: string; label: string; onPress?: () => void; wide?: boolean }) {
   const body = <><View style={local.summaryIcon}><Text style={local.iconText}>{icon}</Text></View><Text style={local.summaryValue} numberOfLines={1} adjustsFontSizeToFit>{value}</Text><Text style={local.summaryLabel}>{label}</Text></>;
-  if (!onPress) return <View style={local.summary}>{body}</View>;
-  return <Pressable onPress={onPress} style={({ pressed }) => [local.summary, pressed && local.summaryPressed]}>{body}</Pressable>;
+  if (!onPress) return <View style={[local.summary, wide && local.summaryWide]}>{body}</View>;
+  return <Pressable onPress={onPress} style={({ pressed }) => [local.summary, wide && local.summaryWide, pressed && local.summaryPressed]}>{body}</Pressable>;
 }
-function DealerTabs({ selected, onSelect }: { selected: DealerTab; onSelect: (tab: DealerTab) => void }) { return <View style={appStyles.homeTabs}>{tabs.map(tab => { const active=selected===tab.label; if(tab.label==="New Entry") return <Pressable key={tab.label} onPress={()=>onSelect(tab.label)} style={appStyles.redeemFab}><Text style={[appStyles.redeemFabText,active&&appStyles.redeemFabTextActive]}>{tab.icon}</Text><Text style={active?appStyles.redeemFabLabelActive:appStyles.redeemFabLabel}>{tab.label}</Text></Pressable>; return <Pressable key={tab.label} onPress={()=>onSelect(tab.label)} style={appStyles.homeTabItem}><Text style={appStyles.homeTabIcon}>{tab.icon}</Text><Text style={active?appStyles.homeTabActive:appStyles.homeTabText}>{tab.label}</Text></Pressable>;})}</View>; }
+function DealerTabs({ selected, onSelect }: { selected: DealerTab; onSelect: (tab: DealerTab) => void }) { const insetStyle = useTabBarInsetStyle(); return <View style={[appStyles.homeTabs, insetStyle]}>{tabs.map(tab => { const active=selected===tab.label; if(tab.label==="New Entry") return <Pressable key={tab.label} onPress={()=>onSelect(tab.label)} style={appStyles.redeemFab}><Text style={[appStyles.redeemFabText,active&&appStyles.redeemFabTextActive]}>{tab.icon}</Text><Text style={active?appStyles.redeemFabLabelActive:appStyles.redeemFabLabel}>{tab.label}</Text></Pressable>; return <Pressable key={tab.label} onPress={()=>onSelect(tab.label)} style={appStyles.homeTabItem}><Text style={appStyles.homeTabIcon}>{tab.icon}</Text><Text style={active?appStyles.homeTabActive:appStyles.homeTabText}>{tab.label}</Text></Pressable>;})}</View>; }
 
 const local = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background }, scroll: { flexGrow: 1, paddingBottom: 124 }, partner: { fontFamily: jakarta.semiBold, color: colors.muted, fontSize: 13, marginTop: 4 },
@@ -198,7 +209,7 @@ const local = StyleSheet.create({
   hero: { minHeight: 0 }, loader: { marginVertical: 28 }, rewardRow: { flexDirection: "row", marginTop: 22, marginBottom: 0 }, reward: { flex: 1 }, divider: { width: 1, backgroundColor: "rgba(255,255,255,.28)", marginHorizontal: 15 },
   rewardLabel: { fontFamily: jakarta.bold, color: "rgba(255,255,255,.72)", fontSize: 9, letterSpacing: .8 }, rewardValue: { fontFamily: jakarta.extraBold, color: "#fff", fontSize: 24, marginTop: 7 }, rewardMeta: { fontFamily: jakarta.medium, color: "rgba(255,255,255,.75)", fontSize: 10, marginTop: 4 },
   grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 13 }, summary: { width: "48%", minHeight: 148, borderRadius: 24, padding: 18, backgroundColor: "#fff", borderWidth: 1, borderColor: "#dce7f0", shadowColor: colors.navy, shadowOpacity: .06, shadowRadius: 14, elevation: 3 },
-  summaryPressed: { opacity: .75 },
+  summaryPressed: { opacity: .75 }, summaryWide: { width: "100%", minHeight: 0 },
   summaryIcon: { width: 43, height: 43, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#faf0dd", marginBottom: 12 }, iconText: { fontSize: 21 }, summaryValue: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 24 }, summaryLabel: { fontFamily: jakarta.bold, color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 5, textTransform: "uppercase" }, link: { fontFamily: jakarta.bold, color: colors.primary, fontSize: 13 },
   invoice: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 20, borderWidth: 1, borderColor: "#dce7f0", padding: 15 }, invoiceIcon: { width: 46, height: 46, borderRadius: 15, backgroundColor: "#faf0dd", alignItems: "center", justifyContent: "center" }, invoiceInfo: { flex: 1, marginLeft: 12 }, invoiceName: { fontFamily: jakarta.bold, color: colors.navy, fontSize: 14 }, invoiceMeta: { fontFamily: jakarta.medium, color: colors.muted, fontSize: 10, marginTop: 4 }, invoiceRight: { alignItems: "flex-end", marginLeft: 8 }, invoiceAmount: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 14 }, badge: { borderRadius: 99, paddingHorizontal: 9, paddingVertical: 4, marginTop: 5 }, badgeText: { fontFamily: jakarta.bold, fontSize: 9 }, approvedBg: { backgroundColor: "#e5f8ee" }, pendingBg: { backgroundColor: "#fff2da" }, rejectedBg: { backgroundColor: "#ffe9e9" }, approved: { color: "#13875a" }, pending: { color: "#a96810" }, rejected: { color: colors.danger },
   empty: { alignItems: "center", backgroundColor: "#fff", borderRadius: 24, borderWidth: 1, borderColor: "#dce7f0", padding: 28 }, emptyIcon: { fontSize: 30 }, emptyTitle: { fontFamily: jakarta.bold, color: colors.navy, fontSize: 15, marginTop: 9 }, emptyText: { fontFamily: jakarta.medium, color: colors.muted, fontSize: 11, marginTop: 5 },

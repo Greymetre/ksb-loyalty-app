@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { colors } from "../../constants/colors";
 import { DealerInvoiceItem, dealerInvoiceApi } from "../../services/dealerInvoiceApi";
@@ -27,6 +28,7 @@ export default function DealerInvoiceDetailsSheet({
   const [invoice, setInvoice] = useState<DealerInvoiceItem | null>(null);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const insets = useSafeAreaInsets();
   const [previewAttachment, setPreviewAttachment] = useState<string | null>(null);
 
   useEffect(() => {
@@ -68,7 +70,7 @@ export default function DealerInvoiceDetailsSheet({
 
   return <><Modal visible={Boolean(invoiceId)} transparent animationType="slide" onRequestClose={onClose}>
     <Pressable style={s.overlay} onPress={onClose}>
-      <Pressable style={s.sheet} onPress={() => undefined}>
+      <Pressable style={[s.sheet, { paddingBottom: 24 + insets.bottom }]} onPress={() => undefined}>
         <View style={s.handle} />
         {loading ? <View style={s.loading}><ActivityIndicator color={colors.primary} size="large" /><Text style={s.loadingText}>Loading invoice details</Text></View> : null}
         {!loading && !invoice ? <View style={s.loading}><Text style={s.errorIcon}>!</Text><Text style={s.loadingText}>Invoice details unavailable</Text><Pressable style={s.closeButton} onPress={onClose}><Text style={s.closeText}>Close</Text></Pressable></View> : null}

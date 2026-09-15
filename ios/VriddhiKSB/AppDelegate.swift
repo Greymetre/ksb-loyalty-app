@@ -21,15 +21,19 @@ public class AppDelegate: ExpoAppDelegate {
     reactNativeFactory = factory
     bindReactNativeFactory(factory)
 
-#if os(iOS) || os(tvOS)
-    window = UIWindow(frame: UIScreen.main.bounds)
-    factory.startReactNative(
-      withModuleName: "main",
-      in: window,
-      launchOptions: launchOptions)
-#endif
-
+    // The window is created by SceneDelegate: apps built with the iOS 27 SDK must use the
+    // UIScene life cycle and are stopped at launch if the app delegate makes the window.
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  public func application(
+    _ application: UIApplication,
+    configurationForConnecting connectingSceneSession: UISceneSession,
+    options: UIScene.ConnectionOptions
+  ) -> UISceneConfiguration {
+    let configuration = UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
+    configuration.delegateClass = SceneDelegate.self
+    return configuration
   }
 
   // Linking API
@@ -49,6 +53,57 @@ public class AppDelegate: ExpoAppDelegate {
   ) -> Bool {
     let result = RCTLinkingManager.application(application, continue: userActivity, restorationHandler: restorationHandler)
     return super.application(application, continue: userActivity, restorationHandler: restorationHandler) || result
+  }
+}
+
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+  var window: UIWindow?
+
+  func scene(
+    _ scene: UIScene,
+    willConnectTo session: UISceneSession,
+    options connectionOptions: UIScene.ConnectionOptions
+  ) {
+    guard let windowScene = scene as? UIWindowScene,
+          let appDelegate = UIApplication.shared.delegate as? AppDelegate,
+          let factory = appDelegate.reactNativeFactory else { return }
+
+    let window = UIWindow(windowScene: windowScene)
+    self.window = window
+    // Expo modules and some libraries still look for the window on the app delegate.
+    appDelegate.window = window
+
+    // A link that opened the app from cold start arrives here, not in launchOptions.
+    var launchOptions: [UIApplication.LaunchOptionsKey: Any] = [:]
+    if let url = connectionOptions.urlContexts.first?.url {
+      launchOptions[.url] = url
+    }
+
+    factory.startReactNative(
+      withModuleName: "main",
+      in: window,
+      launchOptions: launchOptions)
+
+    if let userActivity = connectionOptions.userActivities.first {
+      _ = appDelegate.application(UIApplication.shared, continue: userActivity) { _ in }
+    }
+  }
+
+  // With scenes, links reach the scene delegate; hand them to the same app delegate paths as before.
+  func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+    guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else { return }
+    for context in URLContexts {
+      var options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+      if let source = context.options.sourceApplication { options[.sourceApplication] = source }
+      if let annotation = context.options.annotation { options[.annotation] = annotation }
+      options[.openInPlace] = context.options.openInPlace
+      _ = appDelegate.application(UIApplication.shared, open: context.url, options: options)
+    }
+  }
+
+  func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
+    guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else { return }
+    _ = appDelegate.application(UIApplication.shared, continue: userActivity) { _ in }
   }
 }
 

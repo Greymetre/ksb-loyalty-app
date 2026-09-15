@@ -22,7 +22,8 @@ const emptyKyc: KycDetails = {
   bankAccountNumber: "",
   ifscCode: "",
   accountHolderName: "",
-  documents: []
+  documents: [],
+  shopImageUrl: ""
 };
 
 // The dealer login reuses this screen for a retailer assigned to it: pass the
@@ -57,7 +58,8 @@ export default function KycScreen({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [pickingKey, setPickingKey] = useState<KycDocKey | null>(null);
+  const [pickingKey, setPickingKey] = useState<PickKey | null>(null);
+  const [savingShopImage, setSavingShopImage] = useState(false);
   // The document being looked at, shown in the app's own viewer.
   const [previewUri, setPreviewUri] = useState<string | null>(null);
 
@@ -73,24 +75,41 @@ export default function KycScreen({
 
   const update = (key: keyof KycDetails, value: string) => setKyc((current) => ({ ...current, [key]: value }));
 
-  const saveFile = (key: KycDocKey, asset: ImagePicker.ImagePickerAsset) => {
-    setFiles((current) => ({
-      ...current,
-      [key]: {
-        uri: asset.uri,
-        name: asset.fileName || asset.uri.split("/").pop() || `${key}.jpg`,
-        type: asset.mimeType || "image/jpeg"
-      }
-    }));
+  // The shop image is saved the moment it is chosen: it has no review, so there is
+  // nothing to hold it back for the KYC submit.
+  const saveShopImage = async (file: KycFile) => {
+    setSavingShopImage(true);
+    try {
+      const updated = await kycApi.updateShopImage(file, retailerId);
+      setKyc((current) => ({ ...current, shopImageUrl: updated.shopImageUrl }));
+      showToast("Shop image updated", "success");
+    } catch {
+      showToast("Unable to update shop image", "error");
+    } finally {
+      setSavingShopImage(false);
+    }
   };
 
-  const pickCamera = async (key: KycDocKey) => {
+  const saveFile = (key: PickKey, asset: ImagePicker.ImagePickerAsset) => {
+    const file = {
+      uri: asset.uri,
+      name: asset.fileName || asset.uri.split("/").pop() || `${key}.jpg`,
+      type: asset.mimeType || "image/jpeg"
+    };
+    if (key === "shop") {
+      saveShopImage(file);
+      return;
+    }
+    setFiles((current) => ({ ...current, [key]: file }));
+  };
+
+  const pickCamera = async (key: PickKey) => {
     if (pickingKey) return;
     setPickingKey(key);
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert("Camera permission needed", "Please allow camera access to capture this KYC document.");
+        Alert.alert("Camera permission needed", key === "shop" ? "Please allow camera access to capture the shop image." : "Please allow camera access to capture this KYC document.");
         return;
       }
       const result = await ImagePicker.launchCameraAsync({
@@ -107,7 +126,7 @@ export default function KycScreen({
     }
   };
 
-  const pickGallery = async (key: KycDocKey) => {
+  const pickGallery = async (key: PickKey) => {
     if (pickingKey) return;
     setPickingKey(key);
     try {
@@ -211,6 +230,15 @@ export default function KycScreen({
             </View>
           </View>
 
+          <ShopImageCard
+            url={kyc.shopImageUrl}
+            busy={savingShopImage || pickingKey === "shop"}
+            saving={savingShopImage}
+            onPreview={setPreviewUri}
+            onCamera={() => pickCamera("shop")}
+            onGallery={() => pickGallery("shop")}
+          />
+
           <View style={screenStyles.statusGrid}>
             {kyc.documents.map((doc) => <DocStatus key={doc.key} doc={doc} />)}
           </View>
@@ -258,6 +286,9 @@ export default function KycScreen({
     </SafeAreaView>
   );
 }
+
+// A KYC document, or the shop image that shares the camera and gallery pickers.
+type PickKey = KycDocKey | "shop";
 
 // Each document now carries its own fields, so the old shared Section wrapper went
 // away with the "Document Details" and "Bank Proof" blocks it used to hold.
@@ -329,6 +360,61 @@ function pickerErrorMessage(error: unknown, source: "camera" | "gallery") {
   const detail = error instanceof Error ? error.message : String(error || "");
   const fallback = source === "camera" ? "Unable to open the camera on this device." : "Unable to open the gallery on this device.";
   return detail ? `${fallback}\n\n${detail}` : fallback;
+}
+
+function ShopImageCard({
+  url,
+  busy,
+  saving,
+  onPreview,
+  onCamera,
+  onGallery
+}: {
+  url: string;
+  busy: boolean;
+  saving: boolean;
+  onPreview: (uri: string) => void;
+  onCamera: () => void;
+  onGallery: () => void;
+}) {
+  const openImage = () => {
+    if (!url) {
+      showToast("No shop image added yet", "info");
+      return;
+    }
+    onPreview(url);
+  };
+
+  return (
+    <View style={[screenStyles.attachmentCard, screenStyles.shopCard]}>
+      <View style={screenStyles.attachmentTop}>
+        <Pressable onPress={openImage} style={screenStyles.previewBox}>
+          {url ? (
+            <Image source={{ uri: url }} resizeMode="cover" style={screenStyles.previewImage} />
+          ) : (
+            <View style={screenStyles.previewEmpty}><Text style={screenStyles.previewEmptyText}>No image</Text></View>
+          )}
+        </Pressable>
+        <View style={screenStyles.attachmentCopy}>
+          <Text style={screenStyles.attachmentTitle}>Shop Image</Text>
+          <Text style={screenStyles.actionMeta}>{url
+            ? "Replace it any time. It is saved straight away and needs no approval."
+            : "Add a photo of the shop. It is saved straight away and needs no approval."}</Text>
+        </View>
+      </View>
+      <View style={screenStyles.attachmentActions}>
+        <Pressable onPress={openImage} style={screenStyles.viewButton}><Text style={screenStyles.viewButtonText}>View</Text></Pressable>
+        {saving ? (
+          <View style={screenStyles.lockedNote}><ActivityIndicator color={colors.primary} /></View>
+        ) : (
+          <>
+            <Pressable disabled={busy} onPress={onCamera} style={[screenStyles.cameraButton, busy && screenStyles.pickerButtonDisabled]}><Text style={screenStyles.cameraText}>{busy ? "Opening..." : "📷  Camera"}</Text></Pressable>
+            <Pressable disabled={busy} onPress={onGallery} style={[screenStyles.galleryButton, busy && screenStyles.pickerButtonDisabled]}><Text style={screenStyles.galleryText}>{busy ? "Opening..." : "▣  Gallery"}</Text></Pressable>
+          </>
+        )}
+      </View>
+    </View>
+  );
 }
 
 function AttachmentCard({
@@ -435,6 +521,7 @@ const screenStyles = StyleSheet.create({
   fieldWrap: { marginTop: 14 },
   fieldLabel: { marginBottom: 8, fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 11, letterSpacing: 1.8 },
   input: { minHeight: 48, borderRadius: 14, borderWidth: 1.2, borderColor: "#dfe6ee", backgroundColor: "#fdf9f1", paddingHorizontal: 14, paddingVertical: 0, fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 14 },
+  shopCard: { marginTop: 0, marginBottom: 16, borderColor: "#e2c58c" },
   attachmentCard: { marginTop: 14, borderRadius: 17, borderWidth: 1.2, borderColor: "#9be8ba", backgroundColor: colors.white, padding: 14 },
   inputLocked: { backgroundColor: "#f1f4f8", color: colors.muted, borderColor: "#e3e9f0" },
   lockedNote: { flex: 1, height: 42, borderRadius: 14, borderWidth: 1.2, borderColor: "#e2c58c", backgroundColor: "#faf0dd", alignItems: "center", justifyContent: "center" },

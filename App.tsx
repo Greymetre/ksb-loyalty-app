@@ -16,7 +16,7 @@ import { PlayfairDisplay_500Medium } from "@expo-google-fonts/playfair-display/5
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import AppBackdrop from "@/components/AppBackdrop";
 import Toast from "@/components/common/Toast";
-import HomeBottomTabs from "@/components/home/HomeBottomTabs";
+import HomeBottomTabs, { TabContentArea } from "@/components/home/HomeBottomTabs";
 import { Route, SessionDraft } from "@/navigation/routes";
 import { resetSessionExpiry, setSessionExpiredHandler } from "@/services/session";
 import LoadingScreen from "@/screens/common/LoadingScreen";
@@ -184,7 +184,7 @@ export default function App() {
             at full strength while signing in, and as a wash once inside, where the
             content on top has to stay the thing being read. */}
         {route !== "Splash" ? <AppBackdrop faded={!authRoutes.includes(route)} /> : null}
-        <View key={`${route}:${routeVisit}`} style={showBottomTabs ? styles.appContentWithTabs : styles.appContent}>
+        <TabContentArea key={`${route}:${routeVisit}`} withTabs={showBottomTabs}>
           {route === "ForceUpdate" && <ForceUpdateScreen />}
           {route === "Splash" && <SplashScreen onDone={navigate} />}
           {route === "Login" && <LoginScreen onRegister={(nextDraft) => { setDraft(nextDraft); setRoute("Register"); }} onDone={setRoute} />}
@@ -203,7 +203,7 @@ export default function App() {
           {route === "Menu" && <MenuScreen go={go} back={() => setRoute(previous === "Menu" ? "Home" : previous)} />}
           {route === "Profile" && <ProfileScreen go={go} />}
           {route === "Kyc" && <KycScreen go={go} />}
-        </View>
+        </TabContentArea>
           {showBottomTabs ? <HomeBottomTabs go={go} route={route} /> : null}
           {toast ? <Toast payload={toast} onClose={() => setToast(null)} /> : null}
       </View>

@@ -271,10 +271,12 @@ function FilterSheet({
     onApply(draftStatus, draftFromDate.trim(), draftToDate.trim());
   };
 
+  const insets = useSafeAreaInsets();
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable onPress={onClose} style={screenStyles.sheetOverlay}>
-        <Pressable style={screenStyles.sheet}>
+        <Pressable style={[screenStyles.sheet, { paddingBottom: 34 + insets.bottom }]}>
           <View style={screenStyles.sheetHandle} />
           <View style={screenStyles.sheetTitleRow}>
             <Text style={screenStyles.sheetTitle}>Filter invoices</Text>

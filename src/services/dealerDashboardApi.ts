@@ -1,4 +1,5 @@
 import { apiClient } from "@/services/apiClient";
+import { KycStageSummary, readKycSummary } from "@/services/kycStages";
 
 export type DealerRecentInvoice = {
   id: string;
@@ -14,6 +15,7 @@ export type DealerDashboardData = {
   assignedRetailers: number;
   activeRetailers: number;
   pendingKycRetailers: number;
+  kycSummary: KycStageSummary;
   totalInvoices: number;
   totalInvoiceAmount: number;
   approvedInvoiceAmount: number;
@@ -54,6 +56,7 @@ export const dealerDashboardApi = {
       assignedRetailers: numberOr(source.assigned_retailers ?? source.assignedRetailers),
       activeRetailers: numberOr(source.active_retailers ?? source.activeRetailers),
       pendingKycRetailers: numberOr(source.pending_kyc_retailers ?? source.pendingKycRetailers),
+      kycSummary: readKycSummary(source.kyc_summary ?? source.kycSummary),
       totalInvoices: numberOr(source.total_invoices ?? source.totalInvoices),
       totalInvoiceAmount: numberOr(source.total_invoice_amount ?? source.totalInvoiceAmount),
       approvedInvoiceAmount: numberOr(source.approved_invoice_amount ?? source.approvedInvoiceAmount),

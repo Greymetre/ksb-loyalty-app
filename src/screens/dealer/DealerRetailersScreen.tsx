@@ -4,11 +4,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import { colors, gradients } from "../../constants/colors";
 import { DealerRetailerFilter, DealerRetailerList, DealerRetailerListItem, dealerRetailerApi } from "../../services/dealerRetailerApi";
 import KycScreen from "../home/KycScreen";
+import { KYC_STAGES, emptyKycSummary, kycStageCount, kycStageInfo } from "../../services/kycStages";
 import { jakarta } from "../../styles/appStyles";
 
 const empty: DealerRetailerList = {
   items: [], total: 0, page: 1, pageSize: 20,
-  summary: { totalRetailers: 0, activeRetailers: 0, pendingKycRetailers: 0 },
+  summary: { totalRetailers: 0, activeRetailers: 0, pendingKycRetailers: 0, kycSummary: emptyKycSummary },
 };
 
 export default function DealerRetailersScreen({ onBack, initialFilter = "all", initialActiveOnly = false }: { onBack: () => void; initialFilter?: DealerRetailerFilter; initialActiveOnly?: boolean }) {
@@ -64,10 +65,13 @@ export default function DealerRetailersScreen({ onBack, initialFilter = "all", i
     return () => clearTimeout(timer);
   }, [search, filter, activeOnly]);
 
-  // The server applies the same filter. This is only a guard for a server build
-  // that does not know the kyc parameter yet, so the chip never shows a verified
-  // retailer under Pending KYC.
-  const visibleItems = filter === "pending" ? data.items.filter(item => item.kycStatus !== "verified") : data.items;
+  // The server applies the same filter. This only guards against a server build that
+  // does not know the stage yet, so a chip never lists a retailer from another stage.
+  const visibleItems = filter === "all"
+    ? data.items
+    : filter === "pending"
+      ? data.items.filter(item => item.kycStatus !== "verified")
+      : data.items.filter(item => item.kycStage === filter);
 
   const pickFilter = (next: DealerRetailerFilter) => {
     setActiveOnly(false);
@@ -94,22 +98,22 @@ export default function DealerRetailersScreen({ onBack, initialFilter = "all", i
       </View>
       <View style={s.summaryRow}>
         <Summary label="TOTAL RETAILERS" value={data.summary.totalRetailers} />
-        <Summary label="PENDING KYC" value={data.summary.pendingKycRetailers} />
+        <Summary label="FULLY APPROVED" value={data.summary.kycSummary.approved} />
       </View>
     </LinearGradient>
 
     <View style={s.body}>
       <View style={s.searchBox}><Text style={s.searchIcon}>⌕</Text><TextInput value={search} onChangeText={setSearch} placeholder="Search retailer or shop" style={s.search} /></View>
-      <View style={s.chips}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chipScroll} contentContainerStyle={s.chips}>
         <Chip label="All" count={data.summary.totalRetailers} active={filter === "all"} onPress={() => pickFilter("all")} />
-        <Chip label="Pending KYC" count={data.summary.pendingKycRetailers} active={filter === "pending"} onPress={() => pickFilter("pending")} />
-      </View>
+        {KYC_STAGES.map(stage => <Chip key={stage.key} label={stage.label} count={kycStageCount(data.summary.kycSummary, stage.key)} active={filter === stage.key} onPress={() => pickFilter(stage.key)} />)}
+      </ScrollView>
       {activeOnly ? <Text style={s.scopeNote}>Showing retailers who have raised an invoice · tap a filter to see all</Text> : null}
       <ScrollView ref={listRef} showsVerticalScrollIndicator={false} contentContainerStyle={s.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} />}>
         <View style={s.cards}>
           {loading ? <View style={s.loading}><ActivityIndicator color={colors.primary} /><Text style={s.loadingText}>Loading retailers</Text></View> : null}
-          {!loading && !visibleItems.length ? <View style={s.empty}><Text style={s.emptyIcon}>🏪</Text><Text style={s.emptyTitle}>No retailers found</Text><Text style={s.emptyText}>{filter === "pending" ? "Every assigned retailer has completed KYC." : "Retailers assigned to you will appear here."}</Text></View> : null}
+          {!loading && !visibleItems.length ? <View style={s.empty}><Text style={s.emptyIcon}>🏪</Text><Text style={s.emptyTitle}>No retailers found</Text><Text style={s.emptyText}>{filter === "all" ? "Retailers assigned to you will appear here." : filter === "pending" ? "Every assigned retailer has completed KYC." : `No retailer is at ${kycStageInfo(filter).label}.`}</Text></View> : null}
           {visibleItems.map(item => <RetailerCard key={item.id} item={item} onOpen={() => setSelected(item)} />)}
           {!loading && data.items.length < data.total ? <Pressable onPress={() => void loadMore()} disabled={loadingMore} style={s.more}>{loadingMore ? <ActivityIndicator color="#fff" /> : <Text style={s.moreText}>Load more retailers</Text>}</Pressable> : null}
         </View>
@@ -131,7 +135,8 @@ function Summary({ label, value }: { label: string; value: number }) {
 
 function RetailerCard({ item, onOpen }: { item: DealerRetailerListItem; onOpen: () => void }) {
   const initials = item.ownerName.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]?.toUpperCase()).join("") || "R";
-  const verified = item.kycStatus === "verified";
+  const verified = item.kycStage === "approved";
+  const stage = kycStageInfo(item.kycStage);
   const meta = [item.shopName, item.beatName].filter(Boolean).join(" · ");
   return <Pressable onPress={onOpen} style={({ pressed }) => [s.card, pressed && s.cardPressed]}>
     <View style={s.avatar}><Text style={s.avatarText}>{initials}</Text></View>
@@ -142,7 +147,7 @@ function RetailerCard({ item, onOpen }: { item: DealerRetailerListItem; onOpen: 
       <Text style={s.openKyc}>{verified ? "View KYC" : "Complete KYC"} →</Text>
     </View>
     <View style={s.cardRight}>
-      <View style={[s.badge, verified ? s.verifiedBg : s.pendingBg]}><Text style={[s.badgeText, verified ? s.verified : s.pending]}>{item.kycStatusLabel}</Text></View>
+      <View style={[s.badge, { backgroundColor: stage.background }]}><Text style={[s.badgeText, { color: stage.color }]}>{item.kycStageLabel}</Text></View>
       <Text style={s.points}>{new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(item.rewardPoints)} pts</Text>
     </View>
   </Pressable>;
@@ -153,7 +158,9 @@ const s = StyleSheet.create({
   back: { width: 46, height: 46, borderRadius: 15, borderWidth: 1, borderColor: "rgba(255,255,255,.32)", backgroundColor: "rgba(255,255,255,.1)", alignItems: "center", justifyContent: "center" }, backText: { color: "#fff", fontSize: 30 }, title: { fontFamily: jakarta.extraBold, color: "#fff", fontSize: 20, textTransform: "uppercase", letterSpacing: .8 }, headerSpace: { width: 46 },
   summaryRow: { flexDirection: "row", gap: 12, paddingHorizontal: 20 }, summary: { flex: 1, minHeight: 82, padding: 15, borderRadius: 20, borderWidth: 1, borderColor: "rgba(255,255,255,.28)", backgroundColor: "rgba(255,255,255,.13)" }, summaryLabel: { fontFamily: jakarta.bold, color: "#d6e5f7", fontSize: 9, letterSpacing: .8 }, summaryValue: { fontFamily: jakarta.extraBold, color: "#fff", fontSize: 24, marginTop: 6 },
   body: { flex: 1, paddingHorizontal: 20 }, searchBox: { height: 58, borderRadius: 18, backgroundColor: "#fff", borderWidth: 1, borderColor: colors.border, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, marginTop: 18 }, searchIcon: { fontSize: 24, color: colors.muted }, search: { flex: 1, marginLeft: 9, fontFamily: jakarta.semiBold, color: colors.navy },
-  chips: { flexDirection: "row", gap: 10, marginTop: 14 },
+  // A ScrollView shrinks by default: with a long retailer list under it the row was
+  // squeezed and the bottom of every chip cut off. It keeps its own height instead.
+  chipScroll: { flexGrow: 0, flexShrink: 0, height: 40, marginTop: 14 }, chips: { flexDirection: "row", alignItems: "center", gap: 10, paddingRight: 4, paddingVertical: 1 },
   scopeNote: { fontFamily: jakarta.medium, color: colors.muted, fontSize: 10, marginTop: 8 },
   chip: { flexDirection: "row", alignItems: "center", gap: 7, height: 38, paddingHorizontal: 14, borderRadius: 99, backgroundColor: "#fff", borderWidth: 1, borderColor: colors.border },
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
