@@ -1,4 +1,5 @@
 import { apiClient } from "@/services/apiClient";
+import { normalizeBankAccountType } from "@/utils/bankAccountType";
 
 export type KycDocKey = "gst" | "pan" | "aadhar" | "bank";
 
@@ -175,7 +176,7 @@ const normalizeKyc = (raw: any): KycDetails => {
     gstNumber,
     panNumber,
     aadharNo,
-    bankAccountType: String(fields.bank_account_type ?? source.bank_account_type ?? source.bankAccountType ?? bank.account_type ?? bank.accountType ?? detailValue(bankDoc, "bank_account_type") ?? ""),
+    bankAccountType: normalizeBankAccountType(fields.bank_account_type ?? source.bank_account_type ?? source.bankAccountType ?? bank.account_type ?? bank.accountType ?? detailValue(bankDoc, "bank_account_type") ?? ""),
     bankName: String(fields.bank_name ?? source.bank_name ?? source.bankName ?? bank.bank_name ?? bank.bankName ?? detailValue(bankDoc, "bank_name") ?? ""),
     bankAccountNumber,
     ifscCode: String(fields.ifsc_code ?? source.ifsc_code ?? source.ifscCode ?? bank.ifsc_code ?? bank.ifscCode ?? detailValue(bankDoc, "ifsc_code") ?? ""),

@@ -19,7 +19,8 @@ export type Route =
   | "Scheme"
   | "Menu"
   | "Profile"
-  | "Kyc";
+  | "Kyc"
+  | "Documents";
 
 export type SessionDraft = {
   mobile: string;

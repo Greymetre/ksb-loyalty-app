@@ -11,6 +11,7 @@ import { KycDetails, KycDocKey, KycDocument, KycFile, kycApi } from "@/services/
 import InvoiceAttachmentViewer from "@/components/InvoiceAttachmentViewer";
 import { showToast } from "@/services/toast";
 import { jakarta } from "@/styles/appStyles";
+import { BANK_ACCOUNT_TYPES } from "@/utils/bankAccountType";
 
 const emptyKyc: KycDetails = {
   summary: { uploaded: 0, approved: 0, status: "pending", statusLabel: "Pending" },
@@ -259,7 +260,15 @@ export default function KycScreen({
                 onCamera={() => pickCamera(doc.key)}
                 onGallery={() => pickGallery(doc.key)}
               >
-                {documentFields[doc.key].map((field) => (
+                {documentFields[doc.key].map((field) => field.key === "bankAccountType" ? (
+                  <AccountTypeField
+                    key={field.key}
+                    label={field.label}
+                    value={String(kyc.bankAccountType ?? "")}
+                    locked={locked}
+                    onChange={(value) => update("bankAccountType", value)}
+                  />
+                ) : (
                   <KycField
                     key={field.key}
                     label={field.label}
@@ -332,6 +341,30 @@ function KycField(props: React.ComponentProps<typeof TextInput> & { label: strin
     <View style={screenStyles.fieldWrap}>
       <Text style={screenStyles.fieldLabel}>{label}</Text>
       <TextInput placeholderTextColor="#9aa6b3" style={screenStyles.input} {...inputProps} />
+    </View>
+  );
+}
+
+/** Savings, Current or OD - the same three the CRM and the SFA app offer, never free text. */
+function AccountTypeField({ label, value, locked, onChange }: { label: string; value: string; locked: boolean; onChange: (value: string) => void }) {
+  return (
+    <View style={screenStyles.fieldWrap}>
+      <Text style={screenStyles.fieldLabel}>{label}</Text>
+      <View style={screenStyles.typeRow}>
+        {BANK_ACCOUNT_TYPES.map((type) => {
+          const selected = value === type.value;
+          return (
+            <Pressable
+              key={type.value}
+              disabled={locked}
+              onPress={() => onChange(selected ? "" : type.value)}
+              style={[screenStyles.typeOption, selected && screenStyles.typeOptionSelected, locked && !selected && screenStyles.typeOptionLocked]}
+            >
+              <Text style={[screenStyles.typeText, selected && screenStyles.typeTextSelected]}>{type.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -519,6 +552,12 @@ const screenStyles = StyleSheet.create({
   section: { marginTop: 22, borderRadius: 22, backgroundColor: colors.white, borderWidth: 1, borderColor: "#dfe6ee", padding: 18, shadowColor: colors.navy, shadowOpacity: 0.06, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 4 },
   sectionTitle: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 18, marginBottom: 2 },
   fieldWrap: { marginTop: 14 },
+  typeRow: { flexDirection: "row", gap: 8 },
+  typeOption: { flex: 1, minHeight: 46, borderRadius: 14, borderWidth: 1.2, borderColor: "#dfe6ee", backgroundColor: "#fdf9f1", alignItems: "center", justifyContent: "center" },
+  typeOptionSelected: { borderColor: colors.primary, backgroundColor: colors.primary },
+  typeOptionLocked: { opacity: 0.5 },
+  typeText: { fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 14 },
+  typeTextSelected: { color: colors.white },
   fieldLabel: { marginBottom: 8, fontFamily: jakarta.extraBold, color: colors.muted, fontSize: 11, letterSpacing: 1.8 },
   input: { minHeight: 48, borderRadius: 14, borderWidth: 1.2, borderColor: "#dfe6ee", backgroundColor: "#fdf9f1", paddingHorizontal: 14, paddingVertical: 0, fontFamily: jakarta.extraBold, color: colors.navy, fontSize: 14 },
   shopCard: { marginTop: 0, marginBottom: 16, borderColor: "#e2c58c" },

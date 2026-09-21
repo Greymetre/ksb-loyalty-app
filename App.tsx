@@ -29,6 +29,7 @@ import InvoicesScreen from "@/screens/home/InvoicesScreen";
 import InvoiceDetailScreen from "@/screens/home/InvoiceDetailScreen";
 import KycScreen from "@/screens/home/KycScreen";
 import MenuScreen from "@/screens/home/MenuScreen";
+import DocumentsScreen from "@/screens/common/DocumentsScreen";
 import ProfileScreen from "@/screens/home/ProfileScreen";
 import RedemptionHistoryScreen from "@/screens/home/RedemptionHistoryScreen";
 import RedemptionScreen from "@/screens/home/RedemptionScreen";
@@ -61,7 +62,8 @@ const appRoutesWithTabs: Route[] = [
   "Scheme",
   "Menu",
   "Profile",
-  "Kyc"
+  "Kyc",
+  "Documents"
 ];
 
 export default function App() {
@@ -203,6 +205,7 @@ export default function App() {
           {route === "Menu" && <MenuScreen go={go} back={() => setRoute(previous === "Menu" ? "Home" : previous)} />}
           {route === "Profile" && <ProfileScreen go={go} />}
           {route === "Kyc" && <KycScreen go={go} />}
+          {route === "Documents" && <DocumentsScreen onBack={() => setRoute(previous === "Documents" ? "Menu" : previous)} />}
         </TabContentArea>
           {showBottomTabs ? <HomeBottomTabs go={go} route={route} /> : null}
           {toast ? <Toast payload={toast} onClose={() => setToast(null)} /> : null}

@@ -17,7 +17,7 @@ export default function MenuScreen({ go, back }: { go: (route: Route) => void; b
     <Screen>
       <Header title="Menu" onBack={back} />
       <View style={styles.panel}>
-        {(["Home", "Profile", "Slab", "Booster", "Invoices", "Redeem", "RedemptionHistory", "Scheme"] as Route[]).map((item) => <ChoiceCard key={item} label={item === "RedemptionHistory" ? "Redemption History" : item} selected={false} onPress={() => go(item)} emoji="›" />)}
+        {(["Home", "Profile", "Slab", "Booster", "Invoices", "Redeem", "RedemptionHistory", "Scheme", "Documents"] as Route[]).map((item) => <ChoiceCard key={item} label={item === "RedemptionHistory" ? "Redemption History" : item} selected={false} onPress={() => go(item)} emoji="›" />)}
         <AppButton title="Logout" onPress={logout} tone="navy" />
       </View>
     </Screen>

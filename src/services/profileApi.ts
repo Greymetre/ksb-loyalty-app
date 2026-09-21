@@ -97,5 +97,12 @@ export const profileApi = {
     const updated = normalizeProfile(data?.data || data);
     await saveUser(sourceOf(data));
     return updated;
+  },
+  // The account is closed on the server and every session of it is signed out; the app then
+  // returns to the sign-in screen. The same number cannot register again afterwards.
+  async deleteAccount() {
+    const { data } = await apiClient.post("/retailer/account/delete");
+    return String(data?.message ?? "Your account has been deleted.");
   }
+
 };

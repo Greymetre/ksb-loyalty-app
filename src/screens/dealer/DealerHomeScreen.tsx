@@ -20,8 +20,9 @@ import DealerRetailersScreen from "./DealerRetailersScreen";
 import { DealerRetailerFilter } from "../../services/dealerRetailerApi";
 import DealerInvoiceDetailsSheet from "./DealerInvoiceDetailsSheet";
 import DealerProfileScreen from "./DealerProfileScreen";
+import DocumentsScreen from "../common/DocumentsScreen";
 
-type DealerTab = "Dashboard" | "Invoices" | "New Entry" | "Edit Invoice" | "Scheme Detail" | "Retailers" | "Profile";
+type DealerTab = "Dashboard" | "Invoices" | "New Entry" | "Edit Invoice" | "Scheme Detail" | "Retailers" | "Profile" | "Documents";
 type DealerProfile = { name?: string; owner_name?: string; shop_name?: string; customer_type_name?: string; zone?: string; zone_name?: string; custom_fields?: Record<string, unknown> };
 const emptyDashboard: DealerDashboardData = { assignedRetailers: 0, activeRetailers: 0, pendingKycRetailers: 0, kycSummary: emptyKycSummary, totalInvoices: 0, totalInvoiceAmount: 0, approvedInvoiceAmount: 0, expectedInvoiceAmount: 0, totalRewardEarned: 0, totalExpectedReward: 0, recentInvoices: [] };
 const tabs: Array<{ label: DealerTab; icon: string }> = [
@@ -31,6 +32,7 @@ const tabs: Array<{ label: DealerTab; icon: string }> = [
 const drawerTabs: Array<{ label: DealerTab; title: string; subtitle: string; icon: string }> = [
   { label: "Invoices", title: "Invoices", subtitle: "View and manage retailer invoices", icon: "📄" },
   { label: "Retailers", title: "Retailers", subtitle: "View assigned retailers", icon: "🏪" },
+  { label: "Documents", title: "Documents", subtitle: "View and download documents", icon: "📁" },
   { label: "Profile", title: "Profile", subtitle: "View and update account details", icon: "👤" },
 ];
 const text = (value: unknown) => typeof value === "string" ? value.trim() : "";
@@ -109,6 +111,7 @@ export default function DealerHomeScreen({ onLogout }: { onLogout: () => void })
   if (selectedTab === "Scheme Detail" && selectedSchemeId) return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={[local.screen, { paddingBottom: insets.bottom }]}><DealerSchemeDetailScreen key={`scheme-${selectedSchemeId}-${tabVisit}`} schemeId={selectedSchemeId} onBack={() => { setSelectedSchemeId(null); selectTab("Dashboard"); }} /><DealerTabs selected="Dashboard" onSelect={selectTab} /></View></SafeAreaView>;
   if (selectedTab === "Edit Invoice" && editingInvoice) return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={[local.screen, { paddingBottom: insets.bottom }]}><DealerNewInvoiceScreen key={`edit-invoice-${editingInvoice.id}-${tabVisit}`} invoice={editingInvoice} onBack={() => selectTab("Invoices")} onCreated={() => { setEditingInvoice(null); void loadDashboard(true); selectTab("Invoices"); }} /><DealerTabs selected="Invoices" onSelect={selectTab} /></View></SafeAreaView>;
   if (selectedTab === "Retailers") return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={[local.screen, { paddingBottom: insets.bottom }]}><DealerRetailersScreen key={`retailers-${retailerFilter}-${retailerActiveOnly}-${tabVisit}`} initialFilter={retailerFilter} initialActiveOnly={retailerActiveOnly} onBack={() => selectTab("Dashboard")} /><DealerTabs selected={selectedTab} onSelect={selectTab} /></View></SafeAreaView>;
+  if (selectedTab === "Documents") return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={[local.screen, { paddingBottom: insets.bottom }]}><DocumentsScreen key={`documents-${tabVisit}`} onBack={() => selectTab("Dashboard")} /><DealerTabs selected={selectedTab} onSelect={selectTab} /></View></SafeAreaView>;
   if (selectedTab === "Profile") return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={[local.screen, { paddingBottom: insets.bottom }]}><DealerProfileScreen key={`profile-${tabVisit}`} onBack={() => selectTab("Dashboard")} onLogout={onLogout} /><DealerTabs selected={selectedTab} onSelect={selectTab} /></View></SafeAreaView>;
 
   return <SafeAreaView style={appStyles.homeSafe} edges={["top"]}><View style={[local.screen, { paddingBottom: insets.bottom }]}>
@@ -147,10 +150,10 @@ export default function DealerHomeScreen({ onLogout }: { onLogout: () => void })
           <Summary icon="📄" value={`${dashboard.totalInvoices}`} label="Invoices uploaded" wide />
         </View>
 
-        {/* The CRM's four KYC stages, over every retailer mapped to this dealer. Each opens those retailers. */}
-        <View style={appStyles.walletSectionHead}><Text style={appStyles.walletSectionTitle}>Retailer KYC</Text></View>
+        {/* The CRM's four KYC stages, over this dealer's active retailers only. Each opens those same retailers. */}
+        <View style={appStyles.walletSectionHead}><Text style={appStyles.walletSectionTitle}>Active Retailer KYC ({dashboard.kycSummary.total})</Text></View>
         <View style={local.grid}>
-          {KYC_STAGES.map(stage => <Summary key={stage.key} icon={stage.icon} value={`${kycStageCount(dashboard.kycSummary, stage.key)}`} label={stage.label} onPress={() => { setRetailerFilter(stage.key); setRetailerActiveOnly(false); setSelectedTab("Retailers"); setTabVisit(visit => visit + 1); }} />)}
+          {KYC_STAGES.map(stage => <Summary key={stage.key} icon={stage.icon} value={`${kycStageCount(dashboard.kycSummary, stage.key)}`} label={stage.label} onPress={() => { setRetailerFilter(stage.key); setRetailerActiveOnly(true); setSelectedTab("Retailers"); setTabVisit(visit => visit + 1); }} />)}
         </View>
 
         <View style={appStyles.walletSectionHead}><Text style={appStyles.walletSectionTitle}>Recent invoice activity</Text><Pressable onPress={() => selectTab("Invoices")}><Text style={local.link}>View all →</Text></Pressable></View>

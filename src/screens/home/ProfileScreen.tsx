@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -161,6 +161,37 @@ export default function ProfileScreen({ go }: { go: (route: Route) => void }) {
     go("Login");
   };
 
+  // Apple requires the account to be deletable from inside the app. The confirm step spells
+  // out what is lost, because the number cannot sign up again afterwards.
+  const [deleting, setDeleting] = useState(false);
+
+  const deleteAccount = () => {
+    Alert.alert(
+      "Delete account",
+      "Your account will be closed and you will be signed out. Unredeemed points are forfeited and this mobile number cannot sign up again. Do you want to continue?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete account",
+          style: "destructive",
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              const message = await profileApi.deleteAccount();
+              showToast(message, "success");
+              await signOut();
+              go("Login");
+            } catch {
+              showToast("Unable to delete the account. Please try again.", "error");
+            } finally {
+              setDeleting(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <SafeAreaView edges={["left", "right"]} style={screenStyles.safe}>
@@ -255,6 +286,12 @@ export default function ProfileScreen({ go }: { go: (route: Route) => void }) {
 
           <Pressable onPress={logout} style={screenStyles.logoutButton}>
             <Text style={screenStyles.logoutText}>LOGOUT</Text>
+          </Pressable>
+
+          <Pressable disabled={deleting} onPress={deleteAccount} style={[screenStyles.deleteButton, deleting && { opacity: 0.6 }]}>
+            {deleting
+              ? <ActivityIndicator color={colors.danger} />
+              : <Text style={screenStyles.deleteText}>DELETE ACCOUNT</Text>}
           </Pressable>
         </ScrollView>
       </View>
@@ -428,5 +465,7 @@ const screenStyles = StyleSheet.create({
   saveButton: { height: 56, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   saveText: { fontFamily: jakarta.extraBold, color: colors.white, fontSize: 14, letterSpacing: 2.2 },
   logoutButton: { marginTop: 14, height: 52, borderRadius: 17, borderWidth: 1.2, borderColor: "#ffc3c3", backgroundColor: "#fff4f2", alignItems: "center", justifyContent: "center" },
-  logoutText: { fontFamily: jakarta.extraBold, color: colors.danger, fontSize: 13, letterSpacing: 2.2 }
+  logoutText: { fontFamily: jakarta.extraBold, color: colors.danger, fontSize: 13, letterSpacing: 2.2 },
+  deleteButton: { marginTop: 10, height: 52, borderRadius: 17, borderWidth: 1.2, borderColor: colors.danger, backgroundColor: colors.danger, alignItems: "center", justifyContent: "center" },
+  deleteText: { fontFamily: jakarta.extraBold, color: colors.white, fontSize: 13, letterSpacing: 2.2 }
 });
