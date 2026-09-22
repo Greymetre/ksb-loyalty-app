@@ -203,3 +203,9 @@ dependencies {
         implementation jscFlavor
     }
 }
+
+// Push notifications: Firebase reads android/app/google-services.json (from the Firebase console).
+// Without the file the app still builds and runs; it just does not register for push.
+if (file("google-services.json").exists()) {
+    apply plugin: "com.google.gms.google-services"
+}

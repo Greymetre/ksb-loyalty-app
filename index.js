@@ -3,5 +3,9 @@
 import { registerRootComponent } from "expo";
 
 import App from "./App";
+import { registerBackgroundPushHandler } from "./src/services/pushNotifications";
+
+// Firebase needs this set before the app renders, for messages that arrive in the background.
+registerBackgroundPushHandler();
 
 registerRootComponent(App);

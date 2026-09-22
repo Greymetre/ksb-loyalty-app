@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "311075413416",
+    "project_id": "ksb-aaroh",
+    "storage_bucket": "ksb-aaroh.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:311075413416:android:78eb2f888642ffbf6d119d",
+        "android_client_info": {
+          "package_name": "com.fieldkonnect.vriddhiksb"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAtMfiFmNkP-1RBw7QlU2KbF_eNF2hCZ8w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:311075413416:android:c93559f4e901235d6d119d",
+        "android_client_info": {
+          "package_name": "com.fieldkonnectksb"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAtMfiFmNkP-1RBw7QlU2KbF_eNF2hCZ8w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

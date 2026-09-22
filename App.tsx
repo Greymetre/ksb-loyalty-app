@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { AppState, Keyboard, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
@@ -17,8 +17,9 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import AppBackdrop from "@/components/AppBackdrop";
 import Toast from "@/components/common/Toast";
 import HomeBottomTabs, { TabContentArea } from "@/components/home/HomeBottomTabs";
-import { Route, SessionDraft } from "@/navigation/routes";
+import { Route, SessionDraft, allRoutes } from "@/navigation/routes";
 import { resetSessionExpiry, setSessionExpiredHandler } from "@/services/session";
+import { setPushTargetListener, takePushTarget } from "@/services/pushNotifications";
 import LoadingScreen from "@/screens/common/LoadingScreen";
 import LoginScreen from "@/screens/auth/LoginScreen";
 import RegisterScreen from "@/screens/auth/RegisterScreen";
@@ -160,6 +161,27 @@ export default function App() {
     // visit key remounts that data screen so its API is fetched again.
     setRouteVisit((visit) => visit + 1);
   };
+  // A tapped push notification opens its screen - once the app is past the splash and signed in.
+  // routeRef lets the listener, set up once, see the current route.
+  const routeRef = useRef(route);
+  routeRef.current = route;
+  const openPushTarget = () => {
+    const current = routeRef.current;
+    if (current === "Splash" || current === "ForceUpdate" || authRoutes.includes(current)) return;
+    const target = takePushTarget();
+    if (!target) return;
+    if (target.screen === "InvoiceDetail") {
+      if (!target.id) return go("Invoices");
+      setSelectedInvoiceId(target.id);
+    }
+    if ((allRoutes as string[]).includes(target.screen)) go(target.screen as Route);
+  };
+  useEffect(() => {
+    setPushTargetListener(() => openPushTarget());
+    return () => setPushTargetListener(null);
+  });
+  useEffect(() => { openPushTarget(); }, [route]);
+
   const showBottomTabs = route !== "ForceUpdate" && appRoutesWithTabs.includes(route);
 
   if (!fontsLoaded && !fontError) {

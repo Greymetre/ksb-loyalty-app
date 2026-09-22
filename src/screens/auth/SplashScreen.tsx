@@ -3,6 +3,7 @@ import { Animated, Dimensions, Easing, Image, StyleSheet, Text, View } from "rea
 import { StatusBar } from "expo-status-bar";
 
 import { getToken, getUser } from "@/services/storage";
+import { registerForPush } from "@/services/pushNotifications";
 import { Route } from "@/navigation/routes";
 import { customerLandingRoute } from "@/services/customerRouting";
 import { jakarta } from "@/styles/appStyles";
@@ -85,6 +86,7 @@ export default function SplashScreen({ onDone }: { onDone: (route: Route) => voi
     const timer = setTimeout(async () => {
       const token = await getToken();
       const user = token ? await getUser() : null;
+      if (token) void registerForPush();
       onDone(token ? customerLandingRoute(user) : "Login");
     }, SPLASH_DURATION_MS);
 

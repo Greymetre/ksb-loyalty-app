@@ -4,6 +4,7 @@ import { apiClient } from "@/services/apiClient";
 import { DEVICE_NAME, INSTALLED_APP_VERSION, getDeviceId } from "@/services/appVersion";
 import { saveToken, saveUser } from "@/services/storage";
 import { resetSessionExpiry } from "@/services/session";
+import { registerForPush } from "@/services/pushNotifications";
 
 export type NextAction = "email_required" | "register" | "password" | "set_password";
 export type LookupResult = {
@@ -74,4 +75,6 @@ async function persistSession(data: any) {
   // A fresh session, so a later expiry has to be acted on again - the interceptor only
   // reacts to the first 401 it sees, and this arms it.
   resetSessionExpiry();
+  // Not awaited: sign-in must not wait on the notification permission prompt.
+  if (token) void registerForPush();
 }

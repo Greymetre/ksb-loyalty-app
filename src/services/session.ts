@@ -1,5 +1,6 @@
 import { apiClient } from "@/services/apiClient";
 import { clearToken, getToken } from "@/services/storage";
+import { unregisterForPush } from "@/services/pushNotifications";
 
 /**
  * Ending the session from outside a screen.
@@ -51,6 +52,8 @@ export const expireSession = (reason = "You have been signed out. Please sign in
 export const signOut = async () => {
   try {
     if (await getToken()) {
+      // While the session still works: this phone stops getting this account's notifications.
+      await unregisterForPush();
       await apiClient.post("/customer/logout", null, { timeout: 6000 });
     }
   } catch {

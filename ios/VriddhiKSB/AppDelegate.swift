@@ -1,4 +1,5 @@
 import Expo
+import FirebaseCore
 import React
 import ReactAppDependencyProvider
 
@@ -20,6 +21,12 @@ public class AppDelegate: ExpoAppDelegate {
     reactNativeDelegate = delegate
     reactNativeFactory = factory
     bindReactNativeFactory(factory)
+
+    // Push notifications: Firebase starts only when GoogleService-Info.plist is in the app.
+    // Without it the app runs as before and simply does not register for push.
+    if Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil {
+      FirebaseApp.configure()
+    }
 
     // The window is created by SceneDelegate: apps built with the iOS 27 SDK must use the
     // UIScene life cycle and are stopped at launch if the app delegate makes the window.

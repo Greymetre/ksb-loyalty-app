@@ -20,6 +20,11 @@ platform :ios, podfile_properties['ios.deploymentTarget'] || '15.1'
 
 prepare_react_native_project!
 
+# Push notifications: the Firebase iOS SDK is linked as static frameworks (ios.useFrameworks in
+# Podfile.properties.json), from CocoaPods - SPM copies collide under static linkage.
+$RNFirebaseAsStaticFramework = true
+$RNFirebaseDisableSPM = true
+
 target 'VriddhiKSB' do
   use_expo_modules!
 
@@ -59,6 +64,18 @@ target 'VriddhiKSB' do
       :mac_catalyst_enabled => false,
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
+
+    # fmt, compiled from source with React Native (ios.buildReactNativeFromSource), fails on
+    # the new Xcode clang with consteval errors; the same fix the field app's Podfile carries.
+    installer.pods_project.targets.each do |target|
+      next unless target.name == 'fmt'
+
+      target.build_configurations.each do |build_configuration|
+        definitions = build_configuration.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+        definitions << 'FMT_USE_CONSTEVAL=0' unless definitions.include?('FMT_USE_CONSTEVAL=0')
+        build_configuration.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'gnu++17'
+      end
+    end
 
     # Xcode 27 refuses any target below iOS 15. A few pods (and their resource bundles)
     # still declare 9.0 - 13.4; the app itself needs 15.1, so lift them to that.
