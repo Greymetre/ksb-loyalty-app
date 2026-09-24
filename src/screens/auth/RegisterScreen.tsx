@@ -52,10 +52,10 @@ type KycSelection = {
   name: string;
 };
 
+// Signing up is for retailers and influencers only - a dealer account is created in the CRM.
 const fallbackCustomerTypes: MasterOption[] = [
-  { id: -1, name: "Retailer" },
-  { id: -2, name: "Sub-Dealer" },
-  { id: -3, name: "Plumber" }
+  { id: 2, name: "Retailer" },
+  { id: 3, name: "Influencer" }
 ];
 
 const defaultForm: RegisterForm = {
@@ -753,7 +753,7 @@ function locationKey(location: LocationOption, index: number) {
 
 function customerDescription(name: string) {
   const lower = name.toLowerCase();
-  if (lower.includes("plumber")) return "I install KSB pumps on customer sites";
+  if (lower.includes("influencer") || lower.includes("plumber")) return "I install KSB pumps on customer sites";
   if (lower.includes("sub")) return "I distribute KSB products to local retailers";
   return "I run a retail shop selling KSB products";
 }

@@ -132,7 +132,8 @@ export const registrationApi = {
   },
   async register(payload: RegistrationPayload) {
     const typeName = payload.customerType.toLowerCase();
-    const isInfluencer = typeName.includes("plumber") || typeName.includes("sub");
+    // "Influencer" is what the list says now; the older wordings still read as one.
+    const isInfluencer = typeName.includes("influencer") || typeName.includes("plumber") || typeName.includes("sub");
     const { data } = await apiClient.post("/retailer/register", {
       app_type: isInfluencer ? "influencer" : "retailer",
       customer_type: payload.customerTypeId,
