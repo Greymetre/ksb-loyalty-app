@@ -147,27 +147,23 @@ export default function KycScreen({
     }
   };
 
+  /** KYC is given a piece at a time - one document, or one number - so nothing here is
+   *  demanded. Only an empty submit is refused: what is ready goes in now, the rest later. */
   const validateKyc = () => {
-    const requiredFields: Array<[keyof KycDetails, string]> = [
-      ["gstNumber", "GST Number"],
-      ["panNumber", "PAN Number"],
-      ["aadharNo", "Aadhaar Number"],
-      ["accountHolderName", "Account Holder"],
-      ["bankName", "Bank Name"],
-      ["bankAccountType", "Account Type"],
-      ["bankAccountNumber", "Account Number"],
-      ["ifscCode", "IFSC Code"]
+    const kycFields: Array<keyof KycDetails> = [
+      "gstNumber",
+      "panNumber",
+      "aadharNo",
+      "accountHolderName",
+      "bankName",
+      "bankAccountType",
+      "bankAccountNumber",
+      "ifscCode"
     ];
-    const missingField = requiredFields.find(([key]) => !String(kyc[key] ?? "").trim());
-    if (missingField) {
-      showToast(`${missingField[1]} is required`, "error");
-      return false;
-    }
-
-    const requiredDocKeys: KycDocKey[] = ["gst", "pan", "aadhar", "bank"];
-    const missingDocKey = requiredDocKeys.find((key) => !files[key]?.uri && !kyc.documents.some((doc) => doc.key === key && doc.attachmentUrl));
-    if (missingDocKey) {
-      showToast(`${kycDocumentTitle(missingDocKey)} attachment is required`, "error");
+    const hasNumber = kycFields.some((key) => String(kyc[key] ?? "").trim().length > 0);
+    const hasAttachment = Object.values(files).some((file) => !!file?.uri) || kyc.documents.some((doc) => !!doc.attachmentUrl);
+    if (!hasNumber && !hasAttachment) {
+      showToast("Add a document or a detail before submitting", "error");
       return false;
     }
 
@@ -377,16 +373,6 @@ function DocStatus({ doc }: { doc: KycDocument }) {
       <Text style={[screenStyles.docStatusText, tone.includes("approved") && screenStyles.docStatusApprovedText, tone.includes("reject") && screenStyles.docStatusRejectedText]}>{doc.statusLabel}</Text>
     </View>
   );
-}
-
-function kycDocumentTitle(key: KycDocKey) {
-  const titles: Record<KycDocKey, string> = {
-    gst: "GST Certificate",
-    pan: "PAN Card",
-    aadhar: "Aadhaar Card",
-    bank: "Bank Proof"
-  };
-  return titles[key];
 }
 
 function pickerErrorMessage(error: unknown, source: "camera" | "gallery") {

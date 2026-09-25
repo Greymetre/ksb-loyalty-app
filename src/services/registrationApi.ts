@@ -166,8 +166,17 @@ export const registrationApi = {
     return data;
   },
   async customerTypes() {
+    // The sign-up list: retailers and influencers. /masters/customer-types is the field app's
+    // own list and still carries Dealer, so an older server answers that one instead.
+    try {
+      const { data } = await apiClient.get("/masters/signup-customer-types");
+      const options = normalizeOptions(data?.data || data);
+      if (options.length) return options;
+    } catch {
+      // Fall through to the older route.
+    }
     const { data } = await apiClient.get("/masters/customer-types");
-    return normalizeOptions(data?.data || data);
+    return normalizeOptions(data?.data || data).filter((item) => !/dealer/i.test(item.name));
   },
   async states(search = "") {
     const { data } = await apiClient.get("/masters/states", { params: search ? { search } : undefined });

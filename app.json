@@ -2,7 +2,7 @@
   "expo": {
     "name": "KSB-VRiDDHi",
     "slug": "ksb-retailer-app",
-    "version": "2.7",
+    "version": "2.8",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "splash": {
@@ -15,7 +15,7 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.fieldkonnect.ksbretailerapp",
       "icon": "./assets/icon.png",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "LSApplicationQueriesSchemes": [
@@ -29,7 +29,7 @@
       "permissions": [
         "CAMERA"
       ],
-      "versionCode": 14,
+      "versionCode": 15,
       "icon": "./assets/icon.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
