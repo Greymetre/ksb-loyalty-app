@@ -1,7 +1,17 @@
 import { apiClient, apiFileUrl } from "./apiClient";
 
 export type DealerRetailer = { id: number; code: string; name: string; ownerName: string; shopName: string; mobile: string };
-export type DealerScheme = { id: number; name: string; code: string; startDate: string; endDate: string };
+export type DealerScheme = { id: number; name: string; code: string; startDate: string; endDate: string; schemeType: string };
+
+/** A product the dropdown offers for a Quantity Slab scheme. */
+export type DealerSchemeProduct = { id: number; name: string; code: string | null };
+/** One product line of a Quantity Slab invoice. */
+export type DealerInvoiceItemLine = { product_id: number; quantity: number; price: number };
+/** A stored product line read back on an invoice. */
+export type DealerInvoiceProductRow = { productId: number; productName: string; productCode: string | null; quantity: number; price: number };
+/** Live points preview for the entered quantities. */
+export type DealerQuantityPreviewLine = { productId: number; productName: string; quantity: number; cumulativeQuantity: number; rate: number | null; points: number; hint: string | null };
+export type DealerQuantityPreview = { totalPoints: number; lines: DealerQuantityPreviewLine[] };
 export type DealerInvoiceStatus = "approved" | "pending" | "hold" | "in_process" | "rejected";
 export type DealerInvoiceItem = {
   id: string; retailerId: number; schemeId: number | null; retailerName: string; invoiceNumber: string;
@@ -11,6 +21,8 @@ export type DealerInvoiceItem = {
   /** First file, kept for older screens; the full set is in `attachments`. */
   attachment: string;
   attachments: DealerInvoiceAttachment[];
+  /** Quantity Slab product lines (product, quantity, price). Empty for other scheme types. */
+  items: DealerInvoiceProductRow[];
 };
 export type DealerInvoiceAttachment = { id: number; url: string; fileName: string; mimeType: string; fileSize: number };
 export type DealerInvoiceList = { items: DealerInvoiceItem[]; total: number; page: number; pageSize: number; summary: { totalInvoices: number; rewardsCredited: number; totalTurnover: number } };
@@ -59,6 +71,13 @@ const normalizeItem = (raw: any): DealerInvoiceItem => {
   amount: n(raw?.amount), rewardAmount: n(raw?.reward_amount ?? raw?.rewardAmount), expectedRewardAmount: n(raw?.expected_reward_amount ?? raw?.expectedRewardAmount),
   schemeName: String(raw?.scheme_name ?? raw?.schemeName ?? ""), schemeNote: String(raw?.scheme_note ?? raw?.schemeNote ?? ""), attachment: apiFileUrl(String(raw?.attachment_url ?? raw?.attachmentUrl ?? raw?.attachment ?? "")),
   attachments: normalizeAttachments(raw),
+  items: (Array.isArray(raw?.items) ? raw.items : []).map((item: any): DealerInvoiceProductRow => ({
+    productId: n(item?.product_id ?? item?.productId),
+    productName: String(item?.product_name ?? item?.productName ?? ""),
+    productCode: item?.product_code ?? item?.productCode ?? null,
+    quantity: n(item?.quantity),
+    price: n(item?.price),
+  })),
   status: normalizedStatus, statusLabel: normalizedStatus === "approved" ? "Approved" : normalizedStatus === "rejected" ? "Rejected" : normalizedStatus === "hold" ? "Hold" : normalizedStatus === "in_process" ? "In Process" : "Pending",
   canEdit: Boolean(raw?.can_edit ?? raw?.canEdit), canDelete: Boolean(raw?.can_delete ?? raw?.canDelete),
   };
@@ -73,7 +92,28 @@ export const dealerInvoiceApi = {
   async schemes(retailerId: number, invoiceDate: string): Promise<DealerScheme[]> {
     const { data } = await apiClient.get("/dealer/invoice-schemes", { params: { retailer_id: retailerId, invoice_date: invoiceDate } });
     const rows = Array.isArray(data?.data) ? data.data : [];
-    return rows.map((x: any): DealerScheme => ({ id: n(x.id), name: String(x.name ?? ""), code: String(x.code ?? ""), startDate: String(x.start_date ?? x.startDate ?? ""), endDate: String(x.end_date ?? x.endDate ?? "") }));
+    return rows.map((x: any): DealerScheme => ({ id: n(x.id), name: String(x.name ?? ""), code: String(x.code ?? ""), startDate: String(x.start_date ?? x.startDate ?? ""), endDate: String(x.end_date ?? x.endDate ?? ""), schemeType: String(x.scheme_type ?? x.schemeType ?? "Invoice") }));
+  },
+  async schemeProducts(schemeId: number): Promise<DealerSchemeProduct[]> {
+    const { data } = await apiClient.get("/dealer/scheme-products", { params: { scheme_id: schemeId } });
+    const rows = Array.isArray(data?.products) ? data.products : [];
+    return rows.map((x: any): DealerSchemeProduct => ({ id: n(x.id), name: String(x.name ?? ""), code: x.code ?? null }));
+  },
+  async quantityPoints(schemeId: number, customerId: number, invoiceDate: string, lines: { product_id: number; quantity: number }[], exceptInvoiceId?: number | null): Promise<DealerQuantityPreview> {
+    const { data } = await apiClient.post("/dealer/quantity-points", { scheme_id: schemeId, customer_id: customerId, invoice_date: invoiceDate, except_invoice_id: exceptInvoiceId ?? null, lines });
+    const preview = data?.preview ?? {};
+    return {
+      totalPoints: n(preview?.total_points ?? preview?.totalPoints),
+      lines: (Array.isArray(preview?.lines) ? preview.lines : []).map((row: any): DealerQuantityPreviewLine => ({
+        productId: n(row?.product_id ?? row?.productId),
+        productName: String(row?.product_name ?? row?.productName ?? ""),
+        quantity: n(row?.quantity),
+        cumulativeQuantity: n(row?.cumulative_quantity ?? row?.cumulativeQuantity),
+        rate: row?.rate === null || row?.rate === undefined ? null : n(row?.rate),
+        points: n(row?.points),
+        hint: row?.hint ?? null,
+      })),
+    };
   },
   async list(page = 1, search = "", status = ""): Promise<DealerInvoiceList> {
     const { data } = await apiClient.get("/dealer/invoices", { params: { page, page_size: 20, search, status: status === "all" ? "" : status } });
@@ -87,18 +127,20 @@ export const dealerInvoiceApi = {
     const { data } = await apiClient.get(`/dealer/invoices/${id}`);
     return normalizeItem(data?.data ?? data ?? {});
   },
-  async create(input: { retailerId: number; schemeId: number; invoiceNumber: string; invoiceDate: string; amount: number; attachments: UploadAsset[] }) {
+  async create(input: { retailerId: number; schemeId: number; invoiceNumber: string; invoiceDate: string; amount: number; attachments: UploadAsset[]; items?: DealerInvoiceItemLine[] }) {
     const form = new FormData();
     form.append("retailer_id", String(input.retailerId)); form.append("scheme_id", String(input.schemeId));
     form.append("invoice_number", input.invoiceNumber); form.append("invoice_date", input.invoiceDate); form.append("amount", String(input.amount));
+    if (input.items && input.items.length > 0) form.append("items", JSON.stringify(input.items));
     input.attachments.forEach((file, index) => form.append("attachment_files", formFile(file, index) as any));
     const { data } = await apiClient.post("/dealer/invoices", form, { headers: { "Content-Type": "multipart/form-data" } });
     return data;
   },
-  async update(id: string, input: { retailerId: number; schemeId: number; invoiceNumber: string; invoiceDate: string; amount: number; attachments?: UploadAsset[]; removedAttachmentIds?: number[] }) {
+  async update(id: string, input: { retailerId: number; schemeId: number; invoiceNumber: string; invoiceDate: string; amount: number; attachments?: UploadAsset[]; removedAttachmentIds?: number[]; items?: DealerInvoiceItemLine[] }) {
     const form = new FormData();
     form.append("retailer_id", String(input.retailerId)); form.append("scheme_id", String(input.schemeId));
     form.append("invoice_number", input.invoiceNumber); form.append("invoice_date", input.invoiceDate); form.append("amount", String(input.amount));
+    if (input.items && input.items.length > 0) form.append("items", JSON.stringify(input.items));
     (input.attachments || []).forEach((file, index) => form.append("attachment_files", formFile(file, index) as any));
     (input.removedAttachmentIds || []).forEach(removedId => form.append("removed_attachment_ids", String(removedId)));
     const { data } = await apiClient.post(`/dealer/invoices/${id}`, form, { headers: { "Content-Type": "multipart/form-data" } });
