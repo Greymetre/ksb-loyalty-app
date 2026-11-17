@@ -74,19 +74,29 @@ export default function SchemeScreen({ go, selectedScheme, dashboardSchemes }: S
             {scheme.note ? <Text style={localStyles.note}>{scheme.note}</Text> : null}
           </GradientCard>
           {scheme.description ? <Text style={localStyles.description}>{scheme.description}</Text> : null}
-          <Text style={styles.sectionTitle}>Slabs & Reward Rules</Text>
-          {scheme.tiers.map((tier, index) => <ActivityRow key={`${scheme.id}-${tier.valueFrom}-${index}`} text={`${tier.tierName || `Slab ${index + 1}`}: ₹${tier.valueFrom?.toLocaleString("en-IN")} - ${tier.valueTo == null ? "Above" : `₹${tier.valueTo.toLocaleString("en-IN")}`} · ${tier.rewardLabel || slabRewardText(tier.rate || 0, tier.rewardType ?? scheme.basedOn)}`} accent={String(tier.tierName ?? index + 1).trim() === String(scheme.currentSlab ?? "").trim()} />)}
-          <View style={localStyles.progressBox}>
-            <Text style={localStyles.progressTitle}>Your progress</Text>
-            <Text style={localStyles.progressText}>Achievement: ₹{scheme.achievementValue.toLocaleString("en-IN")}</Text>
-            <Text style={localStyles.progressText}>Current slab: {scheme.currentSlab || "Not reached"}</Text>
-            <Text style={localStyles.progressText}>{scheme.isLive === false
-              ? "This scheme has ended."
-              : scheme.nextSlab
-                ? `₹${scheme.additionalValueRequired.toLocaleString("en-IN")} more required for ${scheme.nextSlab}`
-                : "Highest slab reached"}</Text>
-            {scheme.pendingInvoiceValue > 0 ? <Text style={localStyles.awaiting}>Expected ₹{scheme.expectedPendingReward.toLocaleString("en-IN")} · Awaiting Approval</Text> : null}
-          </View>
+          {scheme.schemeType === "Quantity" && (scheme.groups?.length ?? 0) > 0 ? <>
+            <Text style={styles.sectionTitle}>Quantity Slab Groups</Text>
+            {scheme.groups!.map((group) => <View key={`${scheme.id}-g${group.groupNo}`} style={localStyles.groupBlock}>
+              <Text style={localStyles.groupTitle}>Group {group.groupNo}</Text>
+              {group.slabs.map((slab, i) => <ActivityRow key={`${scheme.id}-g${group.groupNo}-${i}`} text={`${slab.tierName || `Slab ${i + 1}`}: ${slab.valueTo && slab.valueTo > 0 ? `${slab.valueFrom} - ${slab.valueTo} units` : `${slab.valueFrom}+ units`} · ₹${slab.rewardValue.toLocaleString("en-IN")}/unit`} />)}
+              {group.products.length ? <Text style={localStyles.groupProducts}>Products: {group.products.join(", ")}</Text> : null}
+            </View>)}
+            {scheme.pendingInvoiceValue > 0 ? <View style={localStyles.progressBox}><Text style={localStyles.awaiting}>Expected {scheme.expectedPendingReward.toLocaleString("en-IN")} points · Awaiting Approval</Text></View> : null}
+          </> : <>
+            <Text style={styles.sectionTitle}>Slabs & Reward Rules</Text>
+            {scheme.tiers.map((tier, index) => <ActivityRow key={`${scheme.id}-${tier.valueFrom}-${index}`} text={`${tier.tierName || `Slab ${index + 1}`}: ₹${tier.valueFrom?.toLocaleString("en-IN")} - ${tier.valueTo == null ? "Above" : `₹${tier.valueTo.toLocaleString("en-IN")}`} · ${tier.rewardLabel || slabRewardText(tier.rate || 0, tier.rewardType ?? scheme.basedOn)}`} accent={String(tier.tierName ?? index + 1).trim() === String(scheme.currentSlab ?? "").trim()} />)}
+            <View style={localStyles.progressBox}>
+              <Text style={localStyles.progressTitle}>Your progress</Text>
+              <Text style={localStyles.progressText}>Achievement: ₹{scheme.achievementValue.toLocaleString("en-IN")}</Text>
+              <Text style={localStyles.progressText}>Current slab: {scheme.currentSlab || "Not reached"}</Text>
+              <Text style={localStyles.progressText}>{scheme.isLive === false
+                ? "This scheme has ended."
+                : scheme.nextSlab
+                  ? `₹${scheme.additionalValueRequired.toLocaleString("en-IN")} more required for ${scheme.nextSlab}`
+                  : "Highest slab reached"}</Text>
+              {scheme.pendingInvoiceValue > 0 ? <Text style={localStyles.awaiting}>Expected ₹{scheme.expectedPendingReward.toLocaleString("en-IN")} · Awaiting Approval</Text> : null}
+            </View>
+          </>}
           {scheme.brochurePath ? <Pressable style={localStyles.pdfButton} onPress={() => setPreviewUri(apiFileUrl(scheme.brochurePath))}><Text style={localStyles.pdfButtonText}>View / Download Scheme PDF</Text></Pressable> : null}
         </View>)}
       </ScrollView>
@@ -101,6 +111,9 @@ const localStyles = StyleSheet.create({
   // Sits inside the gradient hero, right under the dates, so it takes the same
   // muted white the period line uses rather than the page's body colour.
   note: { color: "rgba(255,255,255,0.9)", fontSize: 12.5, lineHeight: 18, marginTop: 6 },
+  groupBlock: { marginTop: 12, borderLeftWidth: 3, borderLeftColor: "#334155", paddingLeft: 10 },
+  groupTitle: { color: "#142744", fontWeight: "800", fontSize: 13, marginBottom: 4 },
+  groupProducts: { color: "#607087", fontSize: 11.5, marginTop: 4 },
   progressBox: { backgroundColor: "#faf2e2", borderRadius: 14, padding: 14, marginTop: 14 },
   progressTitle: { color: "#142744", fontWeight: "800", marginBottom: 7 },
   progressText: { color: "#50627a", fontSize: 12, marginTop: 4 },

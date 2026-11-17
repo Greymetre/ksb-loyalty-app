@@ -1,5 +1,5 @@
 import { apiClient } from "@/services/apiClient";
-import { SchemeInfo, SchemeTier } from "@/types/api";
+import { SchemeGroup, SchemeInfo, SchemeTier } from "@/types/api";
 
 const numberOr = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : 0;
 const firstDefined = (...values: unknown[]) => values.find((value) => value !== undefined && value !== null);
@@ -59,7 +59,18 @@ export const normalizeScheme = (raw: any): SchemeInfo => {
     additionalValueRequired: explicitAdditional == null
       ? Math.max((computedNextTier?.valueFrom ?? computedNextTier?.amount ?? achievementValue) - achievementValue, 0)
       : numberOr(explicitAdditional),
-    tiers
+    tiers,
+    schemeType: firstDefined(raw?.scheme_type, raw?.schemeType, scheme?.scheme_type, scheme?.schemeType) as string | undefined,
+    groups: ((raw?.groups || scheme?.groups || []) as any[]).map((g: any): SchemeGroup => ({
+      groupNo: numberOr(g?.group_no ?? g?.groupNo) || 1,
+      slabs: ((g?.slabs || []) as any[]).map((s: any) => ({
+        tierName: String(s?.tier_name ?? s?.tierName ?? ""),
+        valueFrom: numberOr(s?.value_from ?? s?.valueFrom),
+        valueTo: firstDefined(s?.value_to, s?.valueTo) == null ? null : numberOr(firstDefined(s?.value_to, s?.valueTo)),
+        rewardValue: numberOr(s?.reward_value ?? s?.rewardValue)
+      })),
+      products: ((g?.products || []) as any[]).map((p: any) => String(p)).filter((p: string) => p.length > 0)
+    }))
   };
 };
 

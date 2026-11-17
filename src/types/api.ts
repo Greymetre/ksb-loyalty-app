@@ -142,4 +142,22 @@ export type SchemeInfo = {
   nextSlab?: string;
   additionalValueRequired: number;
   tiers: SchemeTier[];
+  /** Invoice, Product or Quantity. A Quantity scheme is shown by its groups. */
+  schemeType?: string;
+  /** For a Quantity Slab scheme: each group's own quantity ladder + products. */
+  groups?: SchemeGroup[];
+};
+
+/** One band of a Quantity Slab group's ladder. */
+export type SchemeGroupSlab = {
+  tierName: string;
+  valueFrom: number;
+  valueTo: number | null;
+  rewardValue: number;
+};
+/** One group of a Quantity Slab scheme: its own quantity ladder and the goods it covers. */
+export type SchemeGroup = {
+  groupNo: number;
+  slabs: SchemeGroupSlab[];
+  products: string[];
 };

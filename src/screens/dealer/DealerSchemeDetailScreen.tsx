@@ -123,7 +123,30 @@ export default function DealerSchemeDetailScreen({ schemeId, onBack }: { schemeI
             </View>
           </View>
 
-          {detail.slabs.length ? (
+          {detail.schemeType === "Quantity" && detail.groups.length ? (
+            <View style={s.section}>
+              <Text style={s.sectionTitle}>Quantity slab groups</Text>
+              {detail.groups.map(group => (
+                <View key={group.groupNo} style={{ marginBottom: 14, borderLeftWidth: 3, borderLeftColor: "#334155", paddingLeft: 10 }}>
+                  <Text style={[s.slabName, { marginBottom: 4, color: "#334155" }]}>Group {group.groupNo}</Text>
+                  {group.slabs.map((slab, i) => (
+                    <View key={i} style={s.slab}>
+                      <View style={s.slabLeft}>
+                        <Text style={s.slabName}>{slab.tierName}</Text>
+                        <Text style={s.slabRange}>
+                          {slab.valueTo && slab.valueTo > 0 ? `${slab.valueFrom} — ${slab.valueTo} units` : `${slab.valueFrom}+ units`}
+                        </Text>
+                      </View>
+                      <Text style={s.slabReward}>{money(slab.rewardValue)}/unit</Text>
+                    </View>
+                  ))}
+                  {group.products.length ? (
+                    <Text style={[s.slabRange, { marginTop: 6 }]}>Products: {group.products.join(", ")}</Text>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          ) : detail.slabs.length ? (
             <View style={s.section}>
               <Text style={s.sectionTitle}>Slabs</Text>
               {detail.slabs.map((slab, index) => (

@@ -11,7 +11,8 @@ export type DealerInvoiceItemLine = { product_id: number; quantity: number; pric
 export type DealerInvoiceProductRow = { productId: number; productName: string; productCode: string | null; quantity: number; price: number };
 /** Live points preview for the entered quantities. */
 export type DealerQuantityPreviewLine = { productId: number; productName: string; quantity: number; cumulativeQuantity: number; rate: number | null; points: number; hint: string | null };
-export type DealerQuantityPreview = { totalPoints: number; lines: DealerQuantityPreviewLine[] };
+export type DealerQuantityPreviewGroup = { groupNo: number; quantity: number; cumulativeQuantity: number; rate: number | null; tierName: string | null; points: number; hint: string | null };
+export type DealerQuantityPreview = { totalPoints: number; totalQuantity: number; cumulativeQuantity: number; rate: number | null; tierName: string | null; hint: string | null; groups: DealerQuantityPreviewGroup[]; lines: DealerQuantityPreviewLine[] };
 export type DealerInvoiceStatus = "approved" | "pending" | "hold" | "in_process" | "rejected";
 export type DealerInvoiceItem = {
   id: string; retailerId: number; schemeId: number | null; retailerName: string; invoiceNumber: string;
@@ -104,6 +105,20 @@ export const dealerInvoiceApi = {
     const preview = data?.preview ?? {};
     return {
       totalPoints: n(preview?.total_points ?? preview?.totalPoints),
+      totalQuantity: n(preview?.total_quantity ?? preview?.totalQuantity),
+      cumulativeQuantity: n(preview?.cumulative_quantity ?? preview?.cumulativeQuantity),
+      rate: preview?.rate === null || preview?.rate === undefined ? null : n(preview?.rate),
+      tierName: preview?.tier_name ?? preview?.tierName ?? null,
+      hint: preview?.hint ?? null,
+      groups: (Array.isArray(preview?.groups) ? preview.groups : []).map((g: any): DealerQuantityPreviewGroup => ({
+        groupNo: n(g?.group_no ?? g?.groupNo) || 1,
+        quantity: n(g?.quantity),
+        cumulativeQuantity: n(g?.cumulative_quantity ?? g?.cumulativeQuantity),
+        rate: g?.rate === null || g?.rate === undefined ? null : n(g?.rate),
+        tierName: g?.tier_name ?? g?.tierName ?? null,
+        points: n(g?.points),
+        hint: g?.hint ?? null,
+      })),
       lines: (Array.isArray(preview?.lines) ? preview.lines : []).map((row: any): DealerQuantityPreviewLine => ({
         productId: n(row?.product_id ?? row?.productId),
         productName: String(row?.product_name ?? row?.productName ?? ""),

@@ -86,8 +86,6 @@ export default function DealerNewInvoiceScreen({ onBack, onCreated, invoice: ini
   const addRow = () => setQuantityRows(rows => [...rows, { productId: null, productName: "", quantity: "", price: "" }]);
   const removeRow = (i: number) => setQuantityRows(rows => (rows.length <= 1 ? [{ productId: null, productName: "", quantity: "", price: "" }] : rows.filter((_, idx) => idx !== i)));
   const pickProduct = (p: DealerSchemeProduct) => { setQuantityRows(rows => rows.map((r, idx) => (idx === productPickerRow ? { ...r, productId: p.id, productName: p.name } : r))); setProductPickerRow(null); setPicker(null); };
-  const rowPoints = (r: QRow) => preview?.lines.find(l => l.productId === r.productId)?.points ?? 0;
-  const rowHint = (r: QRow) => preview?.lines.find(l => l.productId === r.productId)?.hint ?? null;
   const productOptions = useMemo(() => { const q = search.trim().toLowerCase(); return q ? schemeProducts.filter(p => p.name.toLowerCase().includes(q) || (p.code || "").toLowerCase().includes(q)) : schemeProducts; }, [schemeProducts, search]);
 
   const filtered = useMemo(() => retailers.filter(x => `${x.code} ${x.name} ${x.shopName} ${x.mobile}`.toLowerCase().includes(search.toLowerCase())), [retailers, search]);
@@ -155,13 +153,23 @@ export default function DealerNewInvoiceScreen({ onBack, onCreated, invoice: ini
             <View style={s.half}><TextInput value={row.quantity} onChangeText={v => setRowQty(i, v)} keyboardType="decimal-pad" placeholder="Quantity" style={[s.input, s.compactInput]} /></View>
             <View style={s.half}><TextInput value={row.price} onChangeText={v => setRowPrice(i, v)} keyboardType="decimal-pad" placeholder="Price" style={[s.input, s.compactInput]} /></View>
           </View>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-            <Text style={[s.optionMeta, { color: colors.primary }]}>Expected: {rowPoints(row)}</Text>
-            {quantityRows.length > 1 ? <Pressable onPress={() => removeRow(i)}><Text style={[s.optionMeta, { color: colors.danger }]}>Remove</Text></Pressable> : null}
-          </View>
-          {rowHint(row) ? <Text style={[s.gstHint, { marginTop: 4 }]}>{rowHint(row)}</Text> : null}
+          {quantityRows.length > 1 ? <View style={{ flexDirection: "row", justifyContent: "flex-end", alignItems: "center", marginTop: 8 }}>
+            <Pressable onPress={() => removeRow(i)}><Text style={[s.optionMeta, { color: colors.danger }]}>Remove</Text></Pressable>
+          </View> : null}
         </View>)}
         <Pressable style={[s.input, { marginTop: 10, justifyContent: "center" }]} onPress={addRow}><Text style={[s.inputText, { color: colors.primary }]}>+ Add Product</Text></Pressable>
+        {preview ? <View style={{ marginTop: 10, backgroundColor: "#ECFDF5", borderRadius: 12, padding: 10 }}>
+          {preview.groups && preview.groups.length > 0 ? <>
+            {preview.groups.map(g => <View key={g.groupNo} style={{ marginBottom: 6 }}>
+              <Text style={[s.optionMeta, { color: "#047857" }]}>Group {g.groupNo}: qty {g.quantity}{g.tierName ? ` — slab ${g.tierName}` : ""} → {g.points} points</Text>
+              {g.hint ? <Text style={[s.gstHint, { marginTop: 2 }]}>{g.hint}</Text> : null}
+            </View>)}
+            <Text style={[s.optionMeta, { color: "#047857", fontFamily: jakarta.bold }]}>Total expected reward: {preview.totalPoints} points</Text>
+          </> : <>
+            <Text style={[s.optionMeta, { color: "#047857" }]}>Total quantity {preview.totalQuantity}{preview.tierName ? ` — slab ${preview.tierName}` : ""} → Expected reward: {preview.totalPoints} points</Text>
+            {preview.hint ? <Text style={[s.gstHint, { marginTop: 4 }]}>{preview.hint}</Text> : null}
+          </>}
+        </View> : null}
       </View> : null}
       <Text style={s.label}>INVOICE ATTACHMENTS <Text style={s.req}>*</Text></Text>
       {attachmentCount ? <View style={s.attachmentGrid}>

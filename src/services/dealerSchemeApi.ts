@@ -77,9 +77,26 @@ export type DealerSchemeSlab = {
   rewardType: string;
 };
 
+/** One band of a Quantity Slab group's ladder, for the dealer scheme detail. */
+export type DealerSchemeGroupSlab = {
+  tierName: string;
+  valueFrom: number;
+  valueTo: number | null;
+  rewardValue: number;
+};
+/** One group of a Quantity Slab scheme: its own quantity ladder and the goods it covers. */
+export type DealerSchemeGroup = {
+  groupNo: number;
+  slabs: DealerSchemeGroupSlab[];
+  products: string[];
+};
+
 export type DealerSchemeDetail = DealerScheme & {
   description: string;
   basedOn: string;
+  /** Invoice, Product or Quantity. A Quantity scheme shows its groups instead of the amount slabs. */
+  schemeType: string;
+  groups: DealerSchemeGroup[];
   summary: {
     schemeRetailers: number;
     totalInvoices: number;
@@ -119,6 +136,17 @@ export const dealerSchemeDetailApi = {
       note: String(row?.scheme_note ?? row?.schemeNote ?? ""),
       description: String(row?.scheme_description ?? ""),
       basedOn: String(row?.based_on ?? "Value"),
+      schemeType: String(row?.scheme_type ?? "Invoice"),
+      groups: (Array.isArray(row?.groups) ? row.groups : []).map((g: any): DealerSchemeGroup => ({
+        groupNo: numberOr(g?.group_no) || 1,
+        slabs: (Array.isArray(g?.slabs) ? g.slabs : []).map((s: any): DealerSchemeGroupSlab => ({
+          tierName: String(s?.tier_name ?? ""),
+          valueFrom: numberOr(s?.value_from),
+          valueTo: s?.value_to === null || s?.value_to === undefined ? null : numberOr(s.value_to),
+          rewardValue: numberOr(s?.reward_value),
+        })),
+        products: (Array.isArray(g?.products) ? g.products : []).map((p: any) => String(p)).filter((p: string) => p.length > 0),
+      })),
       summary: {
         schemeRetailers: numberOr(s?.scheme_retailers),
         totalInvoices: numberOr(s?.total_invoices),
